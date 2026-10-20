@@ -6,7 +6,6 @@ from typing import Any
 import yaml
 
 CONFIG_DIR = Path("config")
-REQUIRED_CATALOGS = ("providers", "datasets", "strategies", "experiments", "defaults")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -19,16 +18,10 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return value
 
 
-def load_catalog(config_dir: str | Path = CONFIG_DIR) -> dict[str, Any]:
-    root = Path(config_dir)
-    catalog = {
-        section: _read_yaml(root / f"{section}.yaml").get(section, {})
-        for section in ("providers", "datasets", "strategies", "experiments")
-    }
-    # defaults.yaml uses a nested 'defaults' mapping rather than a same-named catalog.
-    catalog["defaults"] = _read_yaml(root / "defaults.yaml").get("defaults", {})
+def validate_catalog(catalog: dict[str, Any]) -> None:
+    """Validate reusable dataset definitions and their provider references."""
     for section in ("providers", "datasets", "strategies", "experiments"):
-        if not isinstance(catalog[section], dict) or not catalog[section]:
+        if not isinstance(catalog.get(section), dict) or not catalog[section]:
             raise ValueError(f"Configuration section '{section}' must be a non-empty mapping")
 
     for dataset_id, dataset in catalog["datasets"].items():
@@ -41,16 +34,27 @@ def load_catalog(config_dir: str | Path = CONFIG_DIR) -> dict[str, Any]:
             )
         if not dataset.get("symbol"):
             raise ValueError(f"Dataset '{dataset_id}' must define symbol")
-        if dataset.get("interval", "1d") != "1d":
+        interval = dataset.get("interval", "1d")
+        if interval != "1d":
             raise ValueError(
-                f"Dataset '{dataset_id}' requests unsupported interval "
-                f"{dataset['interval']!r}; this version supports daily data only"
+                f"Dataset '{dataset_id}' requests unsupported interval {interval!r}; "
+                "this version supports daily data only"
             )
 
+
+def load_catalog(config_dir: str | Path = CONFIG_DIR) -> dict[str, Any]:
+    root = Path(config_dir)
+    catalog = {
+        section: _read_yaml(root / f"{section}.yaml").get(section, {})
+        for section in ("providers", "datasets", "strategies", "experiments")
+    }
+    catalog["defaults"] = _read_yaml(root / "defaults.yaml").get("defaults", {})
+    validate_catalog(catalog)
     return catalog
 
 
 def resolve_experiment(catalog: dict[str, Any], experiment_id: str) -> dict[str, Any]:
+    validate_catalog(catalog)
     experiments = catalog["experiments"]
     if experiment_id not in experiments:
         choices = ", ".join(sorted(experiments))
