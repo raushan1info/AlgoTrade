@@ -1,0 +1,26 @@
+strategies:
+  ma_20_50:
+    type: moving_average
+    parameters:
+      fast_window: 20
+      slow_window: 50
+
+  ma_50_200:
+    type: moving_average
+    parameters:
+      fast_window: 50
+      slow_window: 200
+
+  rsi_14:
+    type: rsi
+    parameters:
+      period: 14
+      oversold: 30
+      overbought: 70
+
+  macd_standard:
+    type: macd
+    parameters:
+      fast_period: 12
+      slow_period: 26
+      signal_period: 9

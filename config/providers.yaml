@@ -1,0 +1,15 @@
+providers:
+  synthetic_demo:
+    type: synthetic
+
+  yahoo_finance:
+    type: yfinance
+
+  # Example only. Configure a real local CSV path before selecting this provider.
+  local_csv_example:
+    type: csv
+    path: data/raw/example.csv
+
+  # Reserved for a future broker integration; not implemented yet.
+  broker_api_placeholder:
+    type: broker_api

@@ -1,0 +1,33 @@
+experiments:
+  compare_strategies:
+    description: Compare multiple strategies on one dataset
+    datasets: [reliance_demo]
+    strategies: [ma_20_50, ma_50_200, rsi_14, macd_standard]
+    combination_mode: all
+    period:
+      start: "2020-01-01"
+      end: "2025-12-31"
+    output_dir: reports
+    backtest:
+      initial_capital: 100000
+      transaction_cost_bps: 10
+
+  compare_datasets:
+    description: Compare one strategy across multiple datasets
+    datasets: [reliance_demo, tcs_demo, infy_demo]
+    strategies: [ma_20_50]
+    combination_mode: all
+    period:
+      start: "2020-01-01"
+      end: "2025-12-31"
+    output_dir: reports
+
+  full_matrix:
+    description: Run every selected strategy on every selected dataset
+    datasets: [reliance_demo, tcs_demo, infy_demo]
+    strategies: [ma_20_50, rsi_14, macd_standard]
+    combination_mode: all
+    period:
+      start: "2020-01-01"
+      end: "2025-12-31"
+    output_dir: reports
