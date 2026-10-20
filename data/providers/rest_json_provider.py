@@ -2,10 +2,11 @@
 
 Supports a single GET request returning a JSON list of candle objects (or a list
 nested at response_path). Provider-specific authentication, pagination, and
-response schemas should be configured or implemented in dedicated adapters.
+response schemas may require a dedicated adapter.
 """
 import json
 import os
+import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode, urlsplit
 from urllib.request import Request, urlopen
@@ -26,13 +27,15 @@ DEFAULT_FIELD_MAP = {
 
 
 def _resolve_env(value: str) -> str:
-    if value.startswith("env:"):
-        name = value[4:]
+    """Expand env:NAME references without exposing secret values in errors."""
+    def replace(match):
+        name = match.group(1)
         resolved = os.environ.get(name)
         if not resolved:
             raise ValueError(f"Required environment variable '{name}' is not set")
         return resolved
-    return value
+
+    return re.sub(r"env:([A-Za-z_][A-Za-z0-9_]*)", replace, value)
 
 
 def _format_template(value, context: dict[str, str]):
@@ -62,7 +65,7 @@ class RestJSONMarketDataProvider(MarketDataProvider):
         if self.timeout <= 0:
             raise ValueError("timeout_seconds must be positive")
         required = {"Date", "Open", "High", "Low", "Close", "Volume"}
-        if set(self.field_map) < required:
+        if not isinstance(self.field_map, dict) or not required.issubset(self.field_map):
             raise ValueError("field_map must map Date, Open, High, Low, Close, and Volume")
 
     def get_history(self, symbol: str, start: str, end: str) -> pd.DataFrame:
