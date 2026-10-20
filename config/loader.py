@@ -1,9 +1,12 @@
-"""Load and validate YAML experiment configuration."""
+"""Load and validate YAML catalogs and named research experiments."""
+from datetime import date
 from pathlib import Path
 from typing import Any
+
 import yaml
 
 CONFIG_DIR = Path("config")
+REQUIRED_CATALOGS = ("providers", "datasets", "strategies", "experiments", "defaults")
 
 
 def _read_yaml(path: Path) -> dict[str, Any]:
@@ -19,15 +22,31 @@ def _read_yaml(path: Path) -> dict[str, Any]:
 def load_catalog(config_dir: str | Path = CONFIG_DIR) -> dict[str, Any]:
     root = Path(config_dir)
     catalog = {
-        "providers": _read_yaml(root / "providers.yaml").get("providers", {}),
-        "datasets": _read_yaml(root / "datasets.yaml").get("datasets", {}),
-        "strategies": _read_yaml(root / "strategies.yaml").get("strategies", {}),
-        "experiments": _read_yaml(root / "experiments.yaml").get("experiments", {}),
-        "defaults": _read_yaml(root / "defaults.yaml").get("defaults", {}),
+        section: _read_yaml(root / f"{section}.yaml").get(section, {})
+        for section in ("providers", "datasets", "strategies", "experiments")
     }
+    # defaults.yaml uses a nested 'defaults' mapping rather than a same-named catalog.
+    catalog["defaults"] = _read_yaml(root / "defaults.yaml").get("defaults", {})
     for section in ("providers", "datasets", "strategies", "experiments"):
-        if not catalog[section]:
-            raise ValueError(f"Configuration section '{section}' must not be empty")
+        if not isinstance(catalog[section], dict) or not catalog[section]:
+            raise ValueError(f"Configuration section '{section}' must be a non-empty mapping")
+
+    for dataset_id, dataset in catalog["datasets"].items():
+        if not isinstance(dataset, dict):
+            raise ValueError(f"Dataset '{dataset_id}' must be a mapping")
+        provider_id = dataset.get("provider")
+        if provider_id not in catalog["providers"]:
+            raise ValueError(
+                f"Dataset '{dataset_id}' references unknown provider '{provider_id}'"
+            )
+        if not dataset.get("symbol"):
+            raise ValueError(f"Dataset '{dataset_id}' must define symbol")
+        if dataset.get("interval", "1d") != "1d":
+            raise ValueError(
+                f"Dataset '{dataset_id}' requests unsupported interval "
+                f"{dataset['interval']!r}; this version supports daily data only"
+            )
+
     return catalog
 
 
@@ -41,17 +60,33 @@ def resolve_experiment(catalog: dict[str, Any], experiment_id: str) -> dict[str,
         values = experiment.get(field)
         if not isinstance(values, list) or not values:
             raise ValueError(f"Experiment '{experiment_id}' must define a non-empty {field} list")
+        if len(values) != len(set(values)):
+            raise ValueError(f"Experiment '{experiment_id}' contains duplicate {field} IDs")
         registry = catalog[field]
         unknown = sorted(set(values) - set(registry))
         if unknown:
             raise ValueError(f"Experiment '{experiment_id}' references unknown {field}: {unknown}")
+
     period = experiment.get("period", {})
-    if not period.get("start") or not period.get("end"):
+    if not isinstance(period, dict) or not period.get("start") or not period.get("end"):
         raise ValueError(f"Experiment '{experiment_id}' must define period.start and period.end")
-    if str(period["start"]) > str(period["end"]):
+    try:
+        start = date.fromisoformat(str(period["start"]))
+        end = date.fromisoformat(str(period["end"]))
+    except ValueError as exc:
+        raise ValueError("Experiment dates must use ISO format YYYY-MM-DD") from exc
+    if start > end:
         raise ValueError(f"Experiment '{experiment_id}' start date must be <= end date")
-    experiment["backtest"] = {**catalog["defaults"].get("backtest", {}),
-                              **experiment.get("backtest", {})}
+
+    experiment["backtest"] = {
+        **catalog["defaults"].get("backtest", {}),
+        **experiment.get("backtest", {}),
+    }
+    if float(experiment["backtest"].get("initial_capital", 100_000)) <= 0:
+        raise ValueError("backtest.initial_capital must be positive")
+    if float(experiment["backtest"].get("transaction_cost_bps", 10)) < 0:
+        raise ValueError("backtest.transaction_cost_bps cannot be negative")
+
     experiment["output_dir"] = experiment.get("output_dir", "reports")
     experiment["combination_mode"] = experiment.get("combination_mode", "all")
     if experiment["combination_mode"] != "all":
