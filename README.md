@@ -25,7 +25,7 @@ For local development, copy `.env.example` to `.env` at the repository root and 
 
 The root `.env` file is excluded by `.gitignore`; commit only `.env.example` with placeholder values. Never paste real credentials into YAML files, Python source, commits, issues, or logs. If a credential is accidentally committed, revoke/rotate it immediately; deleting it in a later commit does not remove it from Git history. GitHub Actions should use repository/environment Secrets, while production deployments should use an appropriate secrets manager or platform secret store.
 
-Provider YAML may reference an environment variable in a header value, for example `Authorization: "Bearer env:MARKET_DATA_API_TOKEN"`. The provider resolves the reference when the request is made. The placeholder provider URL in the sample configuration is not a real service endpoint.
+Provider configuration contains only the name of the environment variable, never the secret itself. For example, `auth: { type: bearer, token_env: MARKET_DATA_API_TOKEN }` tells the REST adapter to read `MARKET_DATA_API_TOKEN` from the root `.env` file or the process environment and build the Authorization header at request time. For API-key headers, use `auth.type: api_key_header`, `auth.header_name`, and `auth.token_env`. Do not put real tokens in `providers.yaml`; the placeholder provider URL is not a real service endpoint.
 
 ## Configuration-driven experiments
 
