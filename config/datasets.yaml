@@ -1,0 +1,27 @@
+datasets:
+  reliance_demo:
+    provider: synthetic_demo
+    symbol: RELIANCE.NS
+    interval: 1d
+
+  tcs_demo:
+    provider: synthetic_demo
+    symbol: TCS.NS
+    interval: 1d
+
+  infy_demo:
+    provider: synthetic_demo
+    symbol: INFY.NS
+    interval: 1d
+
+  # Example only: uses the generic REST JSON provider above.
+  reliance_api_example:
+    provider: market_data_api_example
+    symbol: RELIANCE
+    interval: 1d
+
+  # Example local CSV dataset. Update the provider/path before use.
+  reliance_csv_example:
+    provider: local_csv_example
+    symbol: RELIANCE.NS
+    interval: 1d

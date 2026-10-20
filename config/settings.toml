@@ -1,0 +1,14 @@
+[backtest]
+initial_capital = 100000.0
+transaction_cost_bps = 10.0
+risk_free_rate = 0.0
+
+[strategy]
+fast_window = 20
+slow_window = 50
+
+[data]
+provider = "synthetic"
+symbol = "DEMO.NS"
+start_date = "2020-01-01"
+end_date = "2025-12-31"

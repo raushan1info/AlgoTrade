@@ -1,0 +1,35 @@
+providers:
+  synthetic_demo:
+    type: synthetic
+
+  yahoo_finance:
+    type: yfinance
+
+  # Example only: configure this to match your actual API's response schema.
+  market_data_api_example:
+    type: rest_json
+    url: https://api.example.com/v1/ohlcv
+    timeout_seconds: 30
+    query_params:
+      symbol: "{symbol}"
+      start: "{start}"
+      end: "{end}"
+    headers:
+      Authorization: "Bearer env:MARKET_DATA_API_TOKEN"
+    response_path: data
+    field_map:
+      Date: timestamp
+      Open: open
+      High: high
+      Low: low
+      Close: close
+      Volume: volume
+
+  # Example only. Configure a real local CSV path before selecting this provider.
+  local_csv_example:
+    type: csv
+    path: data/raw/example.csv
+
+  # Reserved for a future broker-specific integration; not implemented yet.
+  broker_api_placeholder:
+    type: broker_api
