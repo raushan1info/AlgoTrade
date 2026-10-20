@@ -27,7 +27,9 @@ An experiment with N datasets and M strategies executes N x M independent backte
 
 Implement MarketDataProvider.get_history(symbol, start, end), normalize output to Date-indexed Open, High, Low, Close, Volume columns, then register the provider type in data/registry.py and configure it in providers.yaml. Never commit credentials. Read secrets from environment variables in a future authenticated adapter.
 
-The broker_api provider type is intentionally a placeholder and raises a clear error until a concrete adapter exists. An exchange name by itself is not an API integration.
+The generic `rest_json` provider supports a single HTTP GET endpoint returning a JSON list of candle objects. Configure `url`, `query_params`, `headers`, `response_path`, and `field_map` in `providers.yaml`. Query templates can use `{symbol}`, `{start}`, and `{end}`; header values can use `env:VARIABLE_NAME` (including within strings such as `Bearer env:API_TOKEN`). The adapter does not support pagination or provider-specific login/token refresh flows; implement a dedicated adapter for those cases.
+
+The `broker_api` provider type remains a placeholder and raises a clear error until a concrete broker adapter exists. An exchange name by itself is not an API integration. The included API URL is an example and must be replaced with a real endpoint and matching response mapping.
 
 ## Add a strategy
 
