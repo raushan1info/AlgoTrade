@@ -1,5 +1,6 @@
 """Factory for configured market-data providers."""
 from typing import Any
+
 from core.market_data.base import MarketDataProvider
 from data.providers.synthetic import SyntheticMarketDataProvider
 
@@ -17,6 +18,9 @@ def create_provider(provider_id: str, provider_config: dict[str, Any]) -> Market
         if not path:
             raise ValueError(f"Provider '{provider_id}' of type csv requires path")
         return CSVMarketDataProvider(path)
+    if provider_type == "rest_json":
+        from data.providers.rest_json_provider import RestJSONMarketDataProvider
+        return RestJSONMarketDataProvider(provider_config)
     if provider_type == "broker_api":
         raise NotImplementedError(
             f"Provider '{provider_id}' is configured for a broker API, but no adapter is implemented yet"
