@@ -6,6 +6,7 @@ providers:
     type: yfinance
 
   # Example only: configure this to match your actual API's response schema.
+  # Credentials are read from the root .env / process environment, never stored here.
   market_data_api_example:
     type: rest_json
     url: https://api.example.com/v1/ohlcv
@@ -14,8 +15,9 @@ providers:
       symbol: "{symbol}"
       start: "{start}"
       end: "{end}"
-    headers:
-      Authorization: "Bearer env:MARKET_DATA_API_TOKEN"
+    auth:
+      type: bearer
+      token_env: MARKET_DATA_API_TOKEN
     response_path: data
     field_map:
       Date: timestamp
