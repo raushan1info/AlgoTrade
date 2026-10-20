@@ -13,6 +13,20 @@ Requires Python 3.10 or newer.
     pip install -e ".[dev]"
     pytest
 
+## Secrets and environment variables
+
+For local development, copy `.env.example` to `.env` at the repository root and replace the placeholders with credentials from your data provider. The application loads this file at startup through `python-dotenv`. Existing operating-system environment variables take precedence over `.env` values, so CI and deployed environments can inject secrets directly.
+
+    # Windows PowerShell
+    Copy-Item .env.example .env
+
+    # macOS/Linux
+    cp .env.example .env
+
+The root `.env` file is excluded by `.gitignore`; commit only `.env.example` with placeholder values. Never paste real credentials into YAML files, Python source, commits, issues, or logs. If a credential is accidentally committed, revoke/rotate it immediately; deleting it in a later commit does not remove it from Git history. GitHub Actions should use repository/environment Secrets, while production deployments should use an appropriate secrets manager or platform secret store.
+
+Provider YAML may reference an environment variable in a header value, for example `Authorization: "Bearer env:MARKET_DATA_API_TOKEN"`. The provider resolves the reference when the request is made. The placeholder provider URL in the sample configuration is not a real service endpoint.
+
 ## Configuration-driven experiments
 
 Research runs are configured in YAML catalogs under config/. Non-developers can select a named experiment without editing Python code.
