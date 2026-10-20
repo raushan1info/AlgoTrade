@@ -47,7 +47,9 @@ Then change the relevant dataset provider in config/datasets.yaml to yahoo_finan
 
 A CSV provider is included. Configure a CSV provider path in config/providers.yaml and reference it from a dataset. The CSV needs a Date/Datetime/Timestamp column plus Open, High, Low and Close; Volume is also required.
 
-A broker API provider is only a placeholder. A real broker adapter requires provider-specific authentication, instrument mapping, rate-limit handling, historical-data support, and compliance with the provider's terms. Never commit API credentials.
+A generic `rest_json` provider is included for simple REST endpoints that return a JSON list of OHLCV candle objects. Configure the URL, query parameters, response path, and field mapping in `config/providers.yaml`; use `env:VARIABLE_NAME` in header values for secrets. The generic adapter supports a single GET request and does not implement pagination or broker-specific authentication flows. Use a dedicated adapter when your API needs those features.
+
+The `broker_api` provider type remains a placeholder. A real broker adapter requires provider-specific authentication, instrument mapping, rate-limit handling, historical-data support, and compliance with the provider's terms. Never commit API credentials. The `market_data_api_example` and `reliance_api_example` entries use a reserved example URL and will not work until configured for a real API.
 
 ## Adding a strategy
 
