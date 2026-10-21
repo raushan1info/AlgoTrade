@@ -13,6 +13,17 @@ Requires Python 3.10 or newer.
     pip install -e ".[dev]"
     pytest
 
+## Tests
+
+Tests are separated by test type under `tests/`:
+
+- `tests/unit/`: isolated checks for individual modules and components.
+- `tests/integration/`: checks across connected components and end-to-end experiment workflows.
+
+Name each test file `test_<source_module>.py`, matching the production module being tested where practical. For example, tests for `backtesting/engine.py` belong in `tests/unit/test_engine.py`; tests for `data/providers/rest_json_provider.py` belong in `tests/unit/test_rest_json_provider.py`. Keep tests in the relevant unit or integration folder rather than directly under `tests/`.
+
+Run all tests with `pytest`, or run one group with `pytest tests/unit` and `pytest tests/integration`.
+
 ## Secrets and environment variables
 
 For local development, copy `.env.example` to `.env` at the repository root and replace the placeholders with credentials from your data provider. The application loads this file at startup through `python-dotenv`. Existing operating-system environment variables take precedence over `.env` values, so CI and deployed environments can inject secrets directly.
@@ -25,7 +36,7 @@ For local development, copy `.env.example` to `.env` at the repository root and 
 
 The root `.env` file is excluded by `.gitignore`; commit only `.env.example` with placeholder values. Never paste real credentials into YAML files, Python source, commits, issues, or logs. If a credential is accidentally committed, revoke/rotate it immediately; deleting it in a later commit does not remove it from Git history. GitHub Actions should use repository/environment Secrets, while production deployments should use an appropriate secrets manager or platform secret store.
 
-Provider configuration contains only the name of the environment variable, never the secret itself. For example, `auth: { type: bearer, token_env: MARKET_DATA_API_TOKEN }` tells the REST adapter to read `MARKET_DATA_API_TOKEN` from the root `.env` file or the process environment and build the Authorization header at request time. For API-key headers, use `auth.type: api_key_header`, `auth.header_name`, and `auth.token_env`. Do not put real tokens in `providers.yaml`; the placeholder provider URL is not a real service endpoint.
+Provider configuration contains only the name of the environment variable, never the secret itself. For bearer authentication, use `auth: { type: bearer, token_env: MARKET_DATA_API_TOKEN }` to tell the REST adapter to read `MARKET_DATA_API_TOKEN` from the root `.env` file or the process environment and build the Authorization header at request time. For API-key headers, use `auth.type: api_key_header`, `auth.header_name`, and `auth.token_env`. Do not put real tokens in `providers.yaml`; the placeholder provider URL is not a real service endpoint.
 
 ## Configuration-driven experiments
 
@@ -61,7 +72,7 @@ Then change the relevant dataset provider in config/datasets.yaml to yahoo_finan
 
 A CSV provider is included. Configure a CSV provider path in config/providers.yaml and reference it from a dataset. The CSV needs a Date/Datetime/Timestamp column plus Open, High, Low and Close; Volume is also required.
 
-A generic `rest_json` provider is included for simple REST endpoints that return a JSON list of OHLCV candle objects. Configure the URL, query parameters, response path, and field mapping in `config/providers.yaml`; use `env:VARIABLE_NAME` in header values for secrets. The generic adapter supports a single GET request and does not implement pagination or broker-specific authentication flows. Use a dedicated adapter when your API needs those features.
+A generic `rest_json` provider is included for simple REST endpoints that return a JSON list of OHLCV candle objects. Configure the URL, query parameters, response path, and field mapping in `config/providers.yaml`; configure authentication with an environment variable name using `auth.type`, `auth.token_env`, and, for API-key headers, `auth.header_name`. The generic adapter supports a single GET request and does not implement pagination or broker-specific authentication flows. Use a dedicated adapter when your API needs those features.
 
 The `broker_api` provider type remains a placeholder. A real broker adapter requires provider-specific authentication, instrument mapping, rate-limit handling, historical-data support, and compliance with the provider's terms. Never commit API credentials. The `market_data_api_example` and `reliance_api_example` entries use a reserved example URL and will not work until configured for a real API.
 
@@ -80,7 +91,8 @@ Implement strategies/base.py's generate_signals(data) contract in a new strategy
 - reporting/: Markdown and CSV outputs
 - config/: provider, dataset, strategy and experiment catalogs
 - scripts/: runnable commands
-- tests/: automated checks
+- tests/unit/: isolated module-level checks
+- tests/integration/: connected-component and workflow checks
 
 ## Important limitations
 
