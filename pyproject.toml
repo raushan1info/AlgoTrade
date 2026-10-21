@@ -18,7 +18,7 @@ dev = ["pytest>=8.0", "ruff>=0.5"]
 packages = ["analytics", "backtesting", "config", "core", "core.base", "core.market_data", "data", "data.providers", "reporting", "strategies"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests/unit", "tests/integration"]
 pythonpath = ["."]
 addopts = "-q"
 
