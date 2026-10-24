@@ -28,21 +28,35 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
         if not isinstance(catalog.get(section), dict) or not catalog[section]:
             raise ValueError(f"Configuration section '{section}' must be a non-empty mapping")
 
+    allowed = {"synthetic", "yfinance", "csv", "rest_json", "broker_api", "kite_connect", "groww"}
     for provider_id, provider in catalog["providers"].items():
         if not isinstance(provider, dict):
             raise ValueError(f"Provider '{provider_id}' must be a mapping")
         provider_type = provider.get("type")
-        if provider_type not in {"synthetic", "yfinance", "csv", "rest_json", "broker_api"}:
+        if provider_type not in allowed:
             raise ValueError(f"Provider '{provider_id}' has unsupported type {provider_type!r}")
         if provider_type == "csv" and not provider.get("path"):
             raise ValueError(f"Provider '{provider_id}' of type csv requires path")
+        if provider_type == "kite_connect":
+            for key in ("api_key_env", "access_token_env"):
+                if not provider.get(key):
+                    raise ValueError(f"Provider '{provider_id}' requires {key}")
+            if provider.get("kite_interval", "day") not in {
+                "minute", "3minute", "5minute", "10minute", "15minute", "30minute", "60minute", "day"
+            }:
+                raise ValueError(f"Provider '{provider_id}' has unsupported Kite interval")
+        if provider_type == "groww":
+            if not provider.get("token_env"):
+                raise ValueError(f"Provider '{provider_id}' requires token_env")
+            if provider.get("segment", "CASH") not in {"CASH", "FNO"}:
+                raise ValueError(f"Provider '{provider_id}' segment must be CASH or FNO")
+            if not provider.get("candle_interval", "1day"):
+                raise ValueError(f"Provider '{provider_id}' requires candle_interval")
         if provider_type == "rest_json":
-            url = provider.get("url")
-            parsed = urlsplit(str(url or ""))
+            parsed = urlsplit(str(provider.get("url") or ""))
             if parsed.scheme not in {"http", "https"} or not parsed.netloc:
                 raise ValueError(f"REST provider '{provider_id}' requires an absolute HTTP(S) url")
-            timeout = float(provider.get("timeout_seconds", 30))
-            if timeout <= 0:
+            if float(provider.get("timeout_seconds", 30)) <= 0:
                 raise ValueError(f"REST provider '{provider_id}' timeout_seconds must be positive")
             auth = provider.get("auth", {})
             if auth:
@@ -68,14 +82,15 @@ def validate_catalog(catalog: dict[str, Any]) -> None:
         if interval != "1d":
             raise ValueError(
                 f"Dataset '{dataset_id}' requests unsupported interval {interval!r}; "
-                "this version supports daily data only"
+                "the current experiment backtester supports daily data only"
             )
-        if dataset.get("data_kind", "synthetic" if catalog["providers"][provider_id]["type"] == "synthetic" else "ohlcv") not in {
-            "synthetic", "ohlcv", "index", "future", "option", "option_chain"
-        }:
+        kind = dataset.get(
+            "data_kind",
+            "synthetic" if catalog["providers"][provider_id]["type"] == "synthetic" else "ohlcv",
+        )
+        if kind not in {"synthetic", "ohlcv", "index", "future", "option", "option_chain"}:
             raise ValueError(f"Dataset '{dataset_id}' has an unsupported data_kind")
 
-    # Reuse constructors to catch unknown strategy types and invalid parameter values early.
     from strategies.registry import create_strategy
     for strategy_id, definition in catalog["strategies"].items():
         if not isinstance(definition, dict):
@@ -139,10 +154,7 @@ def resolve_experiment(catalog: dict[str, Any], experiment_id: str) -> dict[str,
     if start > end:
         raise ValueError(f"Experiment '{experiment_id}' start date must be <= end date")
 
-    settings = {
-        **catalog["defaults"].get("backtest", {}),
-        **experiment.get("backtest", {}),
-    }
+    settings = {**catalog["defaults"].get("backtest", {}), **experiment.get("backtest", {})}
     initial_capital = float(settings.get("initial_capital", 100_000))
     cost_bps = float(settings.get("transaction_cost_bps", 10))
     risk_free_rate = float(settings.get("risk_free_rate", 0))
@@ -187,12 +199,25 @@ def validate_experiment_readiness(
             warnings.append(
                 f"Dataset '{dataset_id}' uses '{provider_id}', but broker_api is not implemented."
             )
+        elif provider_type == "kite_connect":
+            for key, default in (
+                ("api_key_env", "KITE_API_KEY"), ("access_token_env", "KITE_ACCESS_TOKEN")
+            ):
+                env_name = provider.get(key, default)
+                if not os.environ.get(env_name) or os.environ.get(env_name) == "replace_me":
+                    warnings.append(
+                        f"Provider '{provider_id}' requires environment variable '{env_name}'."
+                    )
+        elif provider_type == "groww":
+            env_name = provider.get("token_env", "GROWW_ACCESS_TOKEN")
+            if not os.environ.get(env_name) or os.environ.get(env_name) == "replace_me":
+                warnings.append(
+                    f"Provider '{provider_id}' requires environment variable '{env_name}'."
+                )
         elif provider_type == "rest_json":
             host = urlsplit(provider["url"]).hostname or ""
             if host.endswith(".example.com") or host == "example.com":
-                warnings.append(
-                    f"Provider '{provider_id}' uses a placeholder example.com endpoint."
-                )
+                warnings.append(f"Provider '{provider_id}' uses a placeholder example.com endpoint.")
             auth = provider.get("auth", {})
             token_env = auth.get("token_env") if isinstance(auth, dict) else None
             if token_env and not os.environ.get(token_env):
@@ -204,7 +229,5 @@ def validate_experiment_readiness(
             if not csv_path.is_absolute():
                 csv_path = REPOSITORY_ROOT / csv_path
             if not csv_path.is_file():
-                warnings.append(
-                    f"Provider '{provider_id}' CSV file does not exist: {csv_path}"
-                )
+                warnings.append(f"Provider '{provider_id}' CSV file does not exist: {csv_path}")
     return warnings
