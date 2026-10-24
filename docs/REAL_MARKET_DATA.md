@@ -56,3 +56,20 @@ The engine is intentionally limited to one exact contract and long/flat signals.
 - Groww's expiry and contracts endpoints retrieve historical F&O catalog entries, but a date-versioned normalized contract database and lot-based derivatives P&L engine are not implemented yet.
 - Validate split/dividend adjustments, corporate actions, data gaps, delisted instruments, transaction taxes, slippage, lot sizes, expiry/settlement, and licensing before treating results as investment evidence or commercial output.
 - API access and historical availability are governed by provider documentation and plan terms. Do not redistribute data unless your provider agreement permits it.
+
+## Daily Nifty/Sensex research watchlist
+
+The default `config/research_universe.yaml` enables a daily index research matrix for Nifty 50, Bank Nifty, Nifty Financial Services, Nifty Next 50, Nifty Midcap Select, selected sector indices, and Sensex. The example dataset mappings use Zerodha Kite symbols. Availability and exact symbols must be verified against the instrument master and your API plan; the CLI records unsupported symbols as visible errors rather than substituting synthetic data.
+
+```bash
+python -m pip install -e '.[dev,zerodha]'
+# Set KITE_API_KEY and a currently valid KITE_ACCESS_TOKEN in .env.
+python scripts/run_watchlist.py validate
+python scripts/run_watchlist.py run
+```
+
+The command writes `reports/watchlist/watchlist.csv` and `reports/watchlist/watchlist.md`. The default end date is the previous calendar day to avoid using a potentially incomplete daily candle. Use `--start YYYY-MM-DD --end YYYY-MM-DD` to override the period.
+
+To use Groww instead, create/change each dataset mapping in `config/datasets.yaml` to `provider: groww_api`, set a provider-supported symbol and the correct exchange/segment settings in `config/providers.yaml`, and configure `GROWW_ACCESS_TOKEN`. Do not assume a Kite symbol can be reused unchanged with Groww.
+
+The watchlist is for underlying index signal research; it does not automatically choose a futures/options contract. F&O needs the exact contract's own historical prices and verified, date-appropriate contract metadata. Not every index has listed derivatives, and the provider's historical API may not return every index/contract.
