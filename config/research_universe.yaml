@@ -7,6 +7,11 @@ watchlist:
     end: previous_day
   max_data_age_calendar_days: 5
   output_dir: reports/watchlist
+  discovery:
+    enabled: true
+    provider: zerodha_kite
+    exchanges: [NSE, BSE]
+    prefixes: [NIFTY, SENSEX]
   strategies:
     - ma_20_50
     - ma_50_200
