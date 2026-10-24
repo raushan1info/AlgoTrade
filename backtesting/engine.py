@@ -1,4 +1,5 @@
 """Vectorized long-only backtest engine with next-bar execution."""
+import numpy as np
 import pandas as pd
 from analytics.metrics import calculate_metrics
 from core.base.models import BacktestConfig, validate_ohlcv
@@ -14,9 +15,7 @@ def run_strategy_backtest(market_data: pd.DataFrame, strategy, config: BacktestC
     if "signal" not in signals:
         raise ValueError("Strategy output must contain a 'signal' column")
     signal = pd.to_numeric(signals["signal"], errors="raise").reindex(data.index)
-    if signal.isna().any() or not signal.map(lambda value: pd.notna(value) and abs(value) != float("inf")).all():
-        raise ValueError("Strategy signals must be finite values between 0 and 1")
-    if not signal.between(0, 1).all():
+    if not np.isfinite(signal.to_numpy(dtype=float)).all() or not signal.between(0, 1).all():
         raise ValueError("Strategy signals must be finite values between 0 and 1")
     result = signals.reindex(data.index).copy()
     result["signal"] = signal.astype(float)
