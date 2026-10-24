@@ -10,6 +10,7 @@ from typing import Any
 
 import pandas as pd
 
+from core.base.derivatives import DerivativeContract
 from core.base.models import validate_ohlcv
 from core.market_data.base import MarketDataProvider
 
@@ -136,6 +137,102 @@ class KiteConnectMarketDataProvider(MarketDataProvider):
         if len(matches) > 1:
             raise ValueError(f"Instrument symbol {symbol!r} is ambiguous; use its numeric token.")
         return int(matches.iloc[0]["instrument_token"])
+
+
+    @staticmethod
+    def _normalise_underlying(value: str) -> str:
+        aliases = {
+            "NIFTY50": "NIFTY",
+            "NIFTY": "NIFTY",
+            "BANKNIFTY": "BANKNIFTY",
+            "BANKNIFTY50": "BANKNIFTY",
+            "FINNIFTY": "FINNIFTY",
+            "NIFTYFINANCIALSERVICES": "FINNIFTY",
+            "MIDCPNIFTY": "MIDCPNIFTY",
+            "NIFTYMIDCAPSELECT": "MIDCPNIFTY",
+            "SENSEX": "SENSEX",
+            "BANKEX": "BANKEX",
+        }
+        key = "".join(character for character in value.upper() if character.isalnum())
+        return aliases.get(key, key)
+
+    def list_derivative_contracts(
+        self,
+        underlying: str,
+        as_of: date,
+        exchanges: tuple[str, ...] = ("NFO", "BFO"),
+    ) -> list[DerivativeContract]:
+        """Discover current/future contracts from the provider's current instrument master.
+
+        This cannot reconstruct expired contracts missing from today's master. Historical
+        F&O backtests require archived, point-in-time instrument-master snapshots.
+        """
+        target = self._normalise_underlying(underlying)
+        if not target:
+            raise ValueError("underlying must be non-empty")
+        contracts: list[DerivativeContract] = []
+        for exchange in exchanges:
+            master = self._instrument_master(exchange)
+            required = {
+                "instrument_token", "tradingsymbol", "name", "expiry",
+                "instrument_type", "segment", "lot_size", "tick_size",
+            }
+            missing = required.difference(master.columns)
+            if missing:
+                raise ValueError(
+                    f"Kite {exchange} instrument master is missing columns: {sorted(missing)}"
+                )
+            underlying_names = master["name"].fillna("").astype(str).map(
+                self._normalise_underlying
+            )
+            expiry_values = pd.to_datetime(master["expiry"], errors="coerce").dt.date
+            types = master["instrument_type"].fillna("").astype(str).str.upper()
+            segments = master["segment"].fillna("").astype(str).str.upper()
+            selected = master.loc[
+                underlying_names.eq(target)
+                & expiry_values.notna()
+                & (expiry_values >= as_of)
+                & types.isin({"FUT", "CE", "PE"})
+                & segments.str.contains(r"(?:NFO|BFO).*(?:FUT|OPT)|(?:FUT|OPT).*(?:NFO|BFO)", regex=True)
+            ]
+            for row in selected.to_dict(orient="records"):
+                instrument_type = str(row["instrument_type"]).upper()
+                expiry_value = pd.Timestamp(row["expiry"]).date()
+                strike_value = float(row.get("strike", 0) or 0)
+                kind = "future" if instrument_type == "FUT" else "option"
+                option_type = None if kind == "future" else instrument_type
+                strike = None if kind == "future" else strike_value
+                if kind == "option" and strike_value <= 0:
+                    continue
+                contracts.append(DerivativeContract(
+                    instrument_id=str(int(row["instrument_token"])),
+                    underlying=target,
+                    exchange=exchange,
+                    segment=str(row["segment"]),
+                    expiry=expiry_value,
+                    lot_size=int(row["lot_size"]),
+                    tick_size=float(row["tick_size"]),
+                    kind=kind,
+                    strike=strike,
+                    option_type=option_type,
+                ))
+        return sorted(
+            contracts,
+            key=lambda contract: (
+                contract.expiry,
+                contract.kind,
+                contract.strike if contract.strike is not None else 0.0,
+                contract.option_type or "",
+                contract.exchange,
+                contract.instrument_id,
+            ),
+        )
+
+    def get_contract_history(
+        self, contract: DerivativeContract, start: str, end: str
+    ) -> pd.DataFrame:
+        """Fetch history for one exact contract using its instrument token."""
+        return self.get_history(contract.instrument_id, start, end)
 
     @staticmethod
     def _datetime(value: str, *, end: bool = False) -> datetime:
