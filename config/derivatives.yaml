@@ -1,0 +1,67 @@
+# Research-only contract candidate policy. Values are policy settings, not exchange rules.
+# Contract metadata (lot size/tick/expiry/token) always comes from provider instrument masters.
+derivatives:
+  enabled: true
+  provider: zerodha_kite
+  exchanges: [NFO, BFO]
+  output_dir: reports/fno_candidates
+  history_start: "2025-01-01"
+  max_data_age_calendar_days: 5
+  underlyings:
+    - id: nifty
+      index_symbol: "NSE:NIFTY 50"
+      derivative_underlying: NIFTY
+      exchange: NSE
+      strategy: ma_20_50
+      policy:
+        kind: option
+        min_days_to_expiry: 2
+        max_days_to_expiry: 45
+        max_moneyness_pct: 3.0
+        max_candidates: 1
+        # Existing MA strategies are long/flat, not short/bearish. Only LONG maps to CE.
+        signal_option_type:
+          LONG: CE
+        allow_flat_signal: false
+    - id: banknifty
+      index_symbol: "NSE:NIFTY BANK"
+      derivative_underlying: BANKNIFTY
+      exchange: NSE
+      strategy: ma_20_50
+      policy:
+        kind: option
+        min_days_to_expiry: 2
+        max_days_to_expiry: 45
+        max_moneyness_pct: 3.0
+        max_candidates: 1
+        signal_option_type:
+          LONG: CE
+        allow_flat_signal: false
+    - id: finnifty
+      index_symbol: "NSE:NIFTY FIN SERVICE"
+      derivative_underlying: FINNIFTY
+      exchange: NSE
+      strategy: ma_20_50
+      policy:
+        kind: option
+        min_days_to_expiry: 2
+        max_days_to_expiry: 45
+        max_moneyness_pct: 3.0
+        max_candidates: 1
+        signal_option_type:
+          LONG: CE
+        allow_flat_signal: false
+    - id: sensex
+      index_symbol: "BSE:SENSEX"
+      derivative_underlying: SENSEX
+      exchange: BSE
+      strategy: ma_20_50
+      policy:
+        kind: option
+        min_days_to_expiry: 2
+        max_days_to_expiry: 45
+        max_moneyness_pct: 3.0
+        max_candidates: 1
+        signal_option_type:
+          LONG: CE
+        allow_flat_signal: false
