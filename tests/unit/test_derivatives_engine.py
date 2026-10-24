@@ -57,7 +57,7 @@ def test_derivative_backtest_uses_whole_lots_and_next_bar_signal():
     assert metrics["lot_size"] == 25
     assert metrics["entry_count"] == 1
     assert metrics["exit_count"] == 1
-    assert metrics["net_pnl"] == pytest.approx(500)
+    assert metrics["net_pnl"] == pytest.approx(125)
 
 
 def test_futures_require_explicit_margin_assumption():
@@ -102,3 +102,21 @@ def test_futures_margin_must_be_explicitly_configured():
             future,
             DerivativesBacktestConfig(initial_capital=1000, futures_margin_rate=0.2),
         )
+
+
+
+def test_derivative_entry_does_not_capture_gap_before_next_open_fill():
+    data = sample_data()
+    data.loc[data.index[1], "Open"] = 120
+    data.loc[data.index[1], "High"] = 125
+    data.loc[data.index[1], "Low"] = 110
+    data.loc[data.index[1], "Close"] = 115
+    result, _ = run_derivative_backtest(
+        data,
+        FixedSignalStrategy([1, 0, 0, 0]),
+        option_contract(),
+        DerivativesBacktestConfig(initial_capital=100_000),
+    )
+    # The entry is at bar 2 open; its prior-close-to-open gap belongs to no position.
+    assert result["position_lots"].tolist() == [0, 1, 0, 0]
+    assert result["gross_pnl"].iloc[1] == pytest.approx(-125)
