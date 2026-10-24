@@ -32,6 +32,9 @@ def test_experiment_runs_strategy_dataset_matrix(tmp_path):
     assert len(result["summary"]) == 4
     assert result["summary"]["dataset_id"].nunique() == 2
     assert result["summary"]["strategy_id"].nunique() == 2
+    assert {"buy_hold_total_return", "entry_count", "exit_count", "exposure_pct"}.issubset(
+        result["summary"].columns
+    )
     assert result["summary_path"].exists()
     assert result["report_path"].exists()
 
