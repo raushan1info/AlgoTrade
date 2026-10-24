@@ -28,7 +28,7 @@ def test_kite_derivative_discovery_returns_future_and_options_for_underlying():
     provider._instrument_master = lambda exchange: _derivative_master()
 
     contracts = provider.list_derivative_contracts(
-        "NIFTY 50", date(2026, 10, 25), exchanges=("NFO",)
+        "NIFTY 50", date(2026, 10, 30), exchanges=("NFO",)
     )
 
     assert len(contracts) == 3
