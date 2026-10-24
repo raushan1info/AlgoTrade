@@ -1,8 +1,8 @@
 """CLI for validating and running named experiment configurations."""
 import argparse
 
-from config.environment import load_environment
-from config.loader import load_catalog, resolve_experiment
+from core.configuration.environment import load_environment
+from core.configuration.loader import load_catalog, resolve_experiment, validate_experiment_readiness
 from backtesting.runner import run_experiment
 
 
