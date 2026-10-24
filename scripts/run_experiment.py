@@ -9,7 +9,7 @@ from backtesting.runner import run_experiment
 def main() -> None:
     load_environment()
     parser = argparse.ArgumentParser(description="Run configuration-driven AlgoTrade experiments.")
-    parser.add_argument("--config-dir", default="config", help="Directory containing YAML catalogs")
+    parser.add_argument("--config-dir", default=None, help="Optional directory containing YAML catalogs")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("list", help="List configured experiments")
     validate = commands.add_parser("validate", help="Validate an experiment without running it")
