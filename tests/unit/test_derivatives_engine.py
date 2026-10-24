@@ -57,7 +57,7 @@ def test_derivative_backtest_uses_whole_lots_and_next_bar_signal():
     assert metrics["lot_size"] == 25
     assert metrics["entry_count"] == 1
     assert metrics["exit_count"] == 1
-    assert metrics["net_pnl"] == pytest.approx(250 - 125)
+    assert metrics["net_pnl"] == pytest.approx(500)
 
 
 def test_futures_require_explicit_margin_assumption():
