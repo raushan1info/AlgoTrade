@@ -216,10 +216,12 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                     provider_cache[provider_id] = create_provider(provider_id, provider_config)
                 market_data = provider_cache[provider_id].get_history(dataset["symbol"], start, end)
                 market_data = validate_ohlcv(market_data)
-                market_data = market_data.loc[
-                    (market_data.index >= pd.Timestamp(start))
-                    & (market_data.index < pd.Timestamp(end) + pd.Timedelta(days=1))
+                start_date, end_date = date.fromisoformat(start), date.fromisoformat(end)
+                in_range = [
+                    start_date <= pd.Timestamp(timestamp).date() <= end_date
+                    for timestamp in market_data.index
                 ]
+                market_data = market_data.loc[in_range]
                 if market_data.empty:
                     raise ValueError("No valid candles remain after applying the requested date range")
                 data_cache[dataset_id] = market_data
@@ -310,8 +312,6 @@ def main() -> None:
     print(f"Watchlist config valid. Period: {start} through {end}")
     print(f"Datasets: {len(watchlist['datasets'])}; strategies: {len(watchlist['strategies'])}")
     if args.command == "validate":
-        import os
-
         for dataset_id in watchlist["datasets"]:
             dataset = catalog["datasets"][dataset_id]
             provider = catalog["providers"][dataset["provider"]]
