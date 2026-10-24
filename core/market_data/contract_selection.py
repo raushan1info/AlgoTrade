@@ -4,6 +4,7 @@ Selection is for research candidates only. Missing liquidity data is surfaced as
 never treated as a pass or fabricated value.
 """
 from datetime import date
+from math import isfinite
 from typing import Any, Iterable
 
 from core.base.derivatives import DerivativeContract
@@ -19,8 +20,8 @@ def select_contracts(
     policy: dict[str, Any],
 ) -> list[dict[str, Any]]:
     """Select contracts deterministically from a provider-supplied dated contract list."""
-    if spot_price <= 0:
-        raise ValueError("spot_price must be positive")
+    if not isfinite(float(spot_price)) or spot_price <= 0:
+        raise ValueError("spot_price must be a finite positive number")
     if not underlying.strip():
         raise ValueError("underlying must be non-empty")
     kind = str(policy.get("kind", "option")).lower()
@@ -40,8 +41,11 @@ def select_contracts(
     if kind == "option" and option_type not in {"CE", "PE"}:
         raise ValueError(f"No valid option type configured for signal state {signal_state!r}")
     max_moneyness_pct = float(policy.get("max_moneyness_pct", 3.0))
-    if max_moneyness_pct < 0:
-        raise ValueError("max_moneyness_pct cannot be negative")
+    if not isfinite(max_moneyness_pct) or max_moneyness_pct < 0:
+        raise ValueError("max_moneyness_pct must be finite and non-negative")
+    max_candidates = int(policy.get("max_candidates", 1))
+    if max_candidates < 1:
+        raise ValueError("max_candidates must be at least 1")
 
     eligible: list[tuple[DerivativeContract, int]] = []
     for contract in contracts:
@@ -79,7 +83,7 @@ def select_contracts(
                 item[0].exchange,
                 item[0].instrument_id,
             ),
-        )[: int(policy.get("max_candidates", 1))]
+        )[:max_candidates]
     output: list[dict[str, Any]] = []
     for contract, dte in chosen:
         output.append({
