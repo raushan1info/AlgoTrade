@@ -111,7 +111,7 @@ Credentials are only one prerequisite. The user must select a provider whose pla
 
 ## Implemented in this PR branch (not yet equivalent to production readiness)
 
-- Added a YAML-configured daily watchlist matrix for 12 example NSE/BSE index datasets and four configured strategies, plus CSV/Markdown output and per-dataset/per-strategy error rows.
+- Added a YAML-configured daily watchlist matrix that can discover NIFTY/SENSEX index instruments from the Kite NSE/BSE instrument masters and run four configured strategies, plus CSV/Markdown output and per-dataset/per-strategy error rows.
 - Added a validation command that checks catalog references and reports missing/placeholder provider credentials without making network requests.
 - Updated the equity and experimental exact-contract F&O engines so close-derived signals are applied at the next bar's open; overnight gaps belong to the previously held position and open-to-close moves belong to the new position.
 - Added configurable equity slippage basis points, end-of-test liquidation costs, and regression tests for gap/entry timing and final exit costs.
