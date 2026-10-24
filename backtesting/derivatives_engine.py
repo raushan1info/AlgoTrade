@@ -69,20 +69,14 @@ def run_derivative_backtest(
     result["signal"] = signal.astype(float)
     result["position_lots"] = (result["signal"].shift(1).fillna(0) > 0).astype(int) * config.lots
     result["close_change"] = result["Close"].diff().fillna(0.0)
-    result["gross_pnl"] = (
-        result["position_lots"].shift(1).fillna(0) * contract.lot_size * result["close_change"]
-    )
-    # Position chosen after the prior close is held during this bar.
-    result["gross_pnl"] = (
-        result["position_lots"] * contract.lot_size * result["close_change"]
-    )
+    # Signal from the previous close determines exposure for this close-to-close bar.
+    result["gross_pnl"] = result["position_lots"] * contract.lot_size * result["close_change"]
     result["position_change_lots"] = result["position_lots"].diff().fillna(
         result["position_lots"]
     ).abs()
     result["turnover_notional"] = (
         result["position_change_lots"] * contract.lot_size * result["Close"]
     )
-    cost_rate = (config.transaction_cost_bps + config.slippage_bps) / 10_000.0
     result["transaction_cost"] = (
         result["turnover_notional"] * config.transaction_cost_bps / 10_000.0
     )
