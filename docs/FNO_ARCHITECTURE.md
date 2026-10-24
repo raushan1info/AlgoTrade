@@ -2,7 +2,13 @@
 
 ## Current status
 
-The repository now defines provider-independent instrument and derivative-contract models, a contract-master interface, an exact-contract history interface, and an underlying index catalog for NIFTY 50, BANK NIFTY, FINNIFTY, and SENSEX. These are architectural foundations, not a functioning F&O data feed or options backtester. No current provider in this repository supplies a historical options chain or an authoritative dated contract master.
+The repository defines provider-independent instrument/derivative models, Groww expiry and contract-symbol retrieval, exact-contract historical candles, and an underlying index catalog for NIFTY 50, BANK NIFTY, FINNIFTY, and SENSEX. It now also includes a separate research-only lot-based backtester for one exact option/futures contract. This is not a production F&O system: provider contract lists do not supply all dated lot/tick/margin/settlement metadata, and no point-in-time option-chain store exists.
+
+## Experimental exact-contract backtest
+
+Run `python scripts/run_derivative_backtest.py --help` for the full CLI. The script fetches candles from a configured provider and writes a result CSV plus JSON metrics. Supply an exact contract symbol, expiry, verified lot size/tick size, and (for options) strike and CE/PE. For futures, explicitly supply a documented approximate `--futures-margin-rate`; the engine intentionally does not assume one universal margin percentage.
+
+Current engine limitations: one exact contract per run; long/flat signals only; whole lots; close-based signals applied with a one-bar delay; configurable transaction-cost/slippage bps; no short options, spreads, automatic expiry/settlement, dynamic SPAN/exposure margin, date-versioned statutory charges, or broker fills. Option strategies currently generate signals from the option contract's own candle series, not from a synchronized underlying/option-chain model. Treat outputs as experimental until these gaps are addressed.
 
 ## Required layers
 
