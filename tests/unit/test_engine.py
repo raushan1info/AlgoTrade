@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 
 from backtesting.engine import run_momentum_backtest
 from core.base.models import BacktestConfig
