@@ -77,3 +77,10 @@ def test_dynamic_discovery_creates_provider_neutral_dataset_items(monkeypatch):
     assert items[0][1]["data_kind"] == "index"
     assert {item[1]["symbol"] for item in items} == {"1001", "2001"}
     assert {item[1]["display_symbol"] for item in items} == {"NSE:NIFTY 50", "BSE:SENSEX"}
+
+
+def test_non_trend_strategy_uses_entry_exit_labels_not_crossover_labels():
+    entry = _signal_summary(pd.DataFrame({"signal": [0.0, 1.0]}), "rsi")
+    exit_signal = _signal_summary(pd.DataFrame({"signal": [1.0, 0.0]}), "rsi")
+    assert entry["signal_event"] == "ENTRY_SIGNAL"
+    assert exit_signal["signal_event"] == "EXIT_SIGNAL"
