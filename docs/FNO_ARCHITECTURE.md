@@ -38,3 +38,12 @@ The catalog deliberately does not hard-code lot sizes, expiry weekdays, strike i
 7. Add paper trading and broker integration as a separate milestone.
 
 This framework is for educational research, not investment advice. Options and futures can produce rapid and substantial losses; backtests are especially sensitive to data quality, fills, liquidity, and cost assumptions.
+
+## Current Kite contract-discovery foundation
+
+The Kite adapter now exposes `list_derivative_contracts(underlying, as_of, exchanges=("NFO", "BFO"))` and `get_contract_history(contract, start, end)`. It reads expiry, strike, CE/PE/FUT type, lot size, tick size, exchange/segment, and instrument token from the current broker instrument master. It filters out contracts expired on the requested date and resolves exact-contract candles by instrument token.
+
+Important limits:
+- This is discovery from the **current** instrument master, not an archived historical contract database. It cannot recover expired contracts absent from the current master and must not be used to claim point-in-time historical availability.
+- The method lists contracts; it does not yet select a trade. An explicit policy is still needed for expiry bucket, ATM/OTM strike, liquidity/open interest, premium budget, and whether the strategy should use futures, calls, puts, or defined-risk spreads.
+- Provider support, exact symbol conventions, historical candle availability, and applicable contract metadata must be tested against the authenticated account and provider plan before relying on results.
