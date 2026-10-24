@@ -4,7 +4,7 @@ This captures contract symbols and expiry metadata returned by Groww; it does no
 invent lot sizes, tick sizes, margins, or historical contract-validity assumptions.
 """
 import argparse
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pandas as pd
