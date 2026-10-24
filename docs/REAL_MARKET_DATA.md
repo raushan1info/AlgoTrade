@@ -70,6 +70,6 @@ python scripts/run_watchlist.py run
 
 The command writes `reports/watchlist/watchlist.csv` and `reports/watchlist/watchlist.md`. The default end date is the previous calendar day to avoid using a potentially incomplete daily candle. Use `--start YYYY-MM-DD --end YYYY-MM-DD` to override the period.
 
-To use Groww instead, create/change each dataset mapping in `config/datasets.yaml` to `provider: groww_api`, set a provider-supported symbol and the correct exchange/segment settings in `config/providers.yaml`, and configure `GROWW_ACCESS_TOKEN`. Do not assume a Kite symbol can be reused unchanged with Groww.
+To use Groww instead, set `discovery.enabled: false` in `config/research_universe.yaml`, then change the selected static dataset mappings in `config/datasets.yaml` to `provider: groww_api`, use provider-supported symbols, and set the correct exchange/segment in `config/providers.yaml`. Configure `GROWW_ACCESS_TOKEN`. The current automatic instrument-master discovery is Kite-specific; do not assume a Kite symbol can be reused unchanged with Groww.
 
 The watchlist is for underlying index signal research; it does not automatically choose a futures/options contract. F&O needs the exact contract's own historical prices and verified, date-appropriate contract metadata. Not every index has listed derivatives, and the provider's historical API may not return every index/contract.
