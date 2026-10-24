@@ -5,7 +5,7 @@ Modular, configuration-driven Indian equity research and backtesting framework.
 ## Quick start
 
 ```bash
-python -m pip install -e '.[dev]'
+python -m pip install -e '.[dev,zerodha]'
 python scripts/run_experiment.py list
 python scripts/run_experiment.py validate --experiment compare_strategies
 python scripts/run_experiment.py run --experiment compare_strategies
