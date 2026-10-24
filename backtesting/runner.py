@@ -30,6 +30,7 @@ def run_experiment(catalog: dict[str, Any], experiment_id: str) -> dict[str, Any
         initial_capital=float(settings.get("initial_capital", 100_000)),
         transaction_cost_bps=float(settings.get("transaction_cost_bps", 10)),
         risk_free_rate=float(settings.get("risk_free_rate", 0)),
+        slippage_bps=float(settings.get("slippage_bps", 0)),
     )
     output_dir = Path(experiment["output_dir"]) / experiment_id
     output_dir.mkdir(parents=True, exist_ok=True)
