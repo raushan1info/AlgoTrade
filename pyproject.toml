@@ -15,7 +15,7 @@ market-data = ["yfinance>=0.2.40"]
 dev = ["pytest>=8.0", "ruff>=0.5"]
 
 [tool.setuptools]
-packages = ["analytics", "backtesting", "config", "core", "core.base", "core.market_data", "core.configuration", "data", "data.providers", "reporting", "strategies"]
+packages = ["analytics", "backtesting", "core", "core.base", "core.market_data", "core.configuration", "data", "data.providers", "reporting", "strategies"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests/unit", "tests/integration"]
