@@ -116,3 +116,5 @@ Credentials are only one prerequisite. The user must select a provider whose pla
 - Updated the equity and experimental exact-contract F&O engines so close-derived signals are applied at the next bar's open; overnight gaps belong to the previously held position and open-to-close moves belong to the new position.
 - Added configurable equity slippage basis points, end-of-test liquidation costs, and regression tests for gap/entry timing and final exit costs.
 - Added setup documentation. Provider symbol coverage, current index support, dated F&O contract masters, statutory charges, and production-grade order/fill simulation still require verification and further implementation.
+
+- Added a Kite derivative-contract discovery foundation that reads current NFO/BFO instrument-master metadata (expiry, strike, CE/PE/FUT, lot size, tick size and instrument token), filters expired contracts, and fetches exact-contract candles by token. This is current-master discovery only; it does not reconstruct expired historical contracts or choose an option trade.
