@@ -1,13 +1,12 @@
 """Factory for configured market-data providers."""
 from typing import Any
 
-from config.environment import load_environment
+from core.configuration.environment import load_environment
 from core.market_data.base import MarketDataProvider
 from data.providers.synthetic import SyntheticMarketDataProvider
 
 
 def create_provider(provider_id: str, provider_config: dict[str, Any]) -> MarketDataProvider:
-    # Also support callers that use the provider registry outside the CLI entrypoints.
     load_environment()
     provider_type = provider_config.get("type")
     if provider_type == "synthetic":
