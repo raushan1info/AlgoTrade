@@ -40,7 +40,7 @@ def _load_watchlist(config_dir: Path) -> dict[str, Any]:
     if period.get("end", "previous_day") not in {"previous_day", "latest"}:
         date.fromisoformat(str(period["end"]))
     discovery = watchlist.get("discovery", {})
-    if discovery and not isinstance(discovery, dict):
+    if not isinstance(discovery, dict):
         raise ValueError("watchlist.discovery must be a mapping")
     if discovery.get("enabled", False):
         if not discovery.get("provider"):
@@ -134,6 +134,9 @@ def _write_reports(rows: list[dict[str, Any]], output_dir: Path,
     output_dir.mkdir(parents=True, exist_ok=True)
     frame = pd.DataFrame(rows)
     if not frame.empty:
+        for required_column in ("signal_event", "run_status", "sharpe_ratio"):
+            if required_column not in frame:
+                frame[required_column] = None
         priority = {
             "BULLISH_CROSSOVER": 0, "BEARISH_CROSSOVER": 1,
             "BULLISH_STATE": 2, "FLAT_STATE": 3,
@@ -273,6 +276,7 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                 "run_status": "ERROR",
                 "signal_state": "UNKNOWN",
                 "signal_event": "UNKNOWN",
+                "sharpe_ratio": None,
                 "error": f"{type(exc).__name__}: {exc}",
             })
         dataset_items = []
