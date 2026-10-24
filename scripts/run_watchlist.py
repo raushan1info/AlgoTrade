@@ -88,7 +88,9 @@ def _required_environment(provider_config: dict[str, Any]) -> list[str]:
     )]
 
 
-def _signal_summary(signal_frame: pd.DataFrame) -> dict[str, Any]:
+def _signal_summary(
+    signal_frame: pd.DataFrame, strategy_type: str = "moving_average"
+) -> dict[str, Any]:
     if "signal" not in signal_frame or signal_frame.empty:
         raise ValueError("Strategy output must include a non-empty signal column")
     signal = pd.to_numeric(signal_frame["signal"], errors="raise")
@@ -96,12 +98,21 @@ def _signal_summary(signal_frame: pd.DataFrame) -> dict[str, Any]:
         raise ValueError("Strategy output contains missing signal values")
     current = float(signal.iloc[-1])
     previous = float(signal.iloc[-2]) if len(signal) > 1 else 0.0
-    if previous <= 0 and current > 0:
-        event = "BULLISH_CROSSOVER"
+    if strategy_type in {"moving_average", "macd"}:
+        if previous <= 0 and current > 0:
+            event = "BULLISH_CROSSOVER"
+        elif previous > 0 and current <= 0:
+            event = "BEARISH_CROSSOVER"
+        elif current > 0:
+            event = "BULLISH_STATE"
+        else:
+            event = "FLAT_STATE"
+    elif previous <= 0 and current > 0:
+        event = "ENTRY_SIGNAL"
     elif previous > 0 and current <= 0:
-        event = "BEARISH_CROSSOVER"
+        event = "EXIT_SIGNAL"
     elif current > 0:
-        event = "BULLISH_STATE"
+        event = "ACTIVE_STATE"
     else:
         event = "FLAT_STATE"
     output: dict[str, Any] = {
@@ -138,8 +149,8 @@ def _write_reports(rows: list[dict[str, Any]], output_dir: Path,
             if required_column not in frame:
                 frame[required_column] = None
         priority = {
-            "BULLISH_CROSSOVER": 0, "BEARISH_CROSSOVER": 1,
-            "BULLISH_STATE": 2, "FLAT_STATE": 3,
+            "BULLISH_CROSSOVER": 0, "ENTRY_SIGNAL": 1, "BEARISH_CROSSOVER": 2,
+            "EXIT_SIGNAL": 3, "BULLISH_STATE": 4, "ACTIVE_STATE": 5, "FLAT_STATE": 6,
         }
         frame["_signal_priority"] = frame.get("signal_event", pd.Series(index=frame.index)).map(
             priority
@@ -338,7 +349,8 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
             try:
                 strategy = create_strategy(strategy_id, catalog["strategies"][strategy_id])
                 signal_frame = strategy.generate_signals(data)
-                signal_info = _signal_summary(signal_frame)
+                strategy_type = catalog["strategies"][strategy_id]["type"]
+                signal_info = _signal_summary(signal_frame, strategy_type)
                 settings = catalog["defaults"].get("backtest", {})
                 _, metrics = run_strategy_backtest(
                     data,
