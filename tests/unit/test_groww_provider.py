@@ -34,6 +34,9 @@ def test_parse_groww_candles_rejects_empty_response():
 
 def test_groww_missing_token_fails_before_network(monkeypatch):
     monkeypatch.delenv("TEST_GROWW_TOKEN", raising=False)
-    provider = GrowwMarketDataProvider({"token_env": "TEST_GROWW_TOKEN"})
+    provider = GrowwMarketDataProvider({
+        "token_env": "TEST_GROWW_TOKEN",
+        "segment": "FNO",
+    })
     with pytest.raises(RuntimeError, match="TEST_GROWW_TOKEN"):
         provider.get_expiries("NIFTY", year=2025)
