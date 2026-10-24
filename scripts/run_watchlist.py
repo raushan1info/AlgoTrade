@@ -150,8 +150,8 @@ def _write_reports(rows: list[dict[str, Any]], output_dir: Path,
         f"- Successful rows: {int(frame.get('run_status', pd.Series(dtype=str)).isin(['OK', 'STALE_DATA']).sum())}",
         f"- Failed rows: {int((frame.get('run_status', pd.Series(dtype=str)) == 'ERROR').sum())}", "",
         "> Research output only. It does not place orders or recommend a trade. "
-        "The current backtest engine uses daily close-to-close return assumptions and is not "
-        "an execution-accurate simulator. F&O contracts require a separate contract-level workflow.", "",
+        "The daily backtest models close-derived signals filled at the next open, but does not "
+        "model bid/ask quotes, liquidity or partial fills. F&O requires a separate contract-level workflow.", "",
         "| Dataset | Strategy | Signal event | Latest bar | Data status | CAGR | Sharpe | Max drawdown |",
         "|---|---|---|---|---|---:|---:|---:|",
     ]
@@ -245,6 +245,9 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                         risk_free_rate=float(catalog["defaults"].get("backtest", {}).get(
                             "risk_free_rate", 0
                         )),
+                        slippage_bps=float(catalog["defaults"].get("backtest", {}).get(
+                            "slippage_bps", 0
+                        )),
                     ),
                 )
                 rows.append({
@@ -263,6 +266,9 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                     "exit_count": metrics.get("exit_count"),
                     "transaction_cost_bps": float(catalog["defaults"].get("backtest", {}).get(
                         "transaction_cost_bps", 10
+                    )),
+                    "slippage_bps": float(catalog["defaults"].get("backtest", {}).get(
+                        "slippage_bps", 0
                     )),
                     "error": "",
                 })
