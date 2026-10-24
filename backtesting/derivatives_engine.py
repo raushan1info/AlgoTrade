@@ -63,8 +63,11 @@ def run_derivative_backtest(
     signal = pd.to_numeric(signals["signal"], errors="raise").reindex(data.index)
     if signal.isna().any() or not np.isfinite(signal.to_numpy(dtype=float)).all():
         raise ValueError("Strategy signals must be finite and present for every candle")
-    if not signal.between(0, 1).all():
-        raise ValueError("Derivative engine currently supports long/flat signals in [0, 1] only")
+    if not signal.isin([0.0, 1.0]).all():
+        raise ValueError(
+            "Derivative engine currently supports long/flat signals between 0 and 1 only "
+            "at endpoints (0 or 1)"
+        )
 
     result = data.copy()
     result["signal"] = signal.astype(float)
