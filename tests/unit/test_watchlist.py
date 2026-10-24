@@ -39,7 +39,6 @@ def test_configured_watchlist_references_known_datasets_and_strategies():
 
 
 def test_watchlist_uses_previous_completed_calendar_day_by_default():
-    catalog = load_catalog(CONFIG_DIR)
     watchlist = _load_watchlist(Path(CONFIG_DIR))
     start, end, end_date = _period_dates(watchlist, None, None)
     assert start == watchlist["period"]["start"]
