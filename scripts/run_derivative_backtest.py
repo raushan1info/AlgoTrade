@@ -61,7 +61,7 @@ def main() -> None:
     contract = DerivativeContract(
         instrument_id=args.symbol,
         underlying=args.underlying,
-        exchange="NSE" if args.symbol.upper().startswith("NSE-") else "NSE",
+        exchange="BSE" if args.symbol.upper().startswith("BSE-") else "NSE",
         segment="FNO",
         expiry=expiry,
         lot_size=args.lot_size,
