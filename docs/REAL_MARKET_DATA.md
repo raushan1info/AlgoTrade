@@ -59,7 +59,7 @@ The engine is intentionally limited to one exact contract and long/flat signals.
 
 ## Daily Nifty/Sensex research watchlist
 
-The default `config/research_universe.yaml` enables a daily index research matrix for Nifty 50, Bank Nifty, Nifty Financial Services, Nifty Next 50, Nifty Midcap Select, selected sector indices, and Sensex. The example dataset mappings use Zerodha Kite symbols. Availability and exact symbols must be verified against the instrument master and your API plan; the CLI records unsupported symbols as visible errors rather than substituting synthetic data.
+The default `config/research_universe.yaml` enables automatic discovery of available NSE/BSE instrument-master entries whose index symbols begin with NIFTY or SENSEX. The runner uses each discovered instrument token and tests historical candles separately. Coverage depends on the provider, plan, symbol metadata and history availability; the CLI records unsupported symbols as visible errors rather than substituting synthetic data. The configured dataset list remains available as a static fallback if you set `discovery.enabled: false`.
 
 ```bash
 python -m pip install -e '.[dev,zerodha]'
