@@ -146,7 +146,7 @@ def test_future_policy_selects_nearest_eligible_future():
 
 @pytest.mark.parametrize("spot", [0, -1])
 def test_rejects_non_positive_spot(spot):
-    with pytest.raises(ValueError, match="spot_price must be positive"):
+    with pytest.raises(ValueError, match="spot_price must be a finite positive number"):
         select_contracts(
             [_contract("call")],
             underlying="NIFTY",
@@ -154,4 +154,16 @@ def test_rejects_non_positive_spot(spot):
             spot_price=spot,
             signal_state="LONG",
             policy=_policy(),
+        )
+
+
+def test_rejects_non_positive_candidate_count():
+    with pytest.raises(ValueError, match="max_candidates must be at least 1"):
+        select_contracts(
+            [_contract("call")],
+            underlying="NIFTY",
+            as_of=AS_OF,
+            spot_price=25000,
+            signal_state="LONG",
+            policy=_policy(max_candidates=0),
         )
