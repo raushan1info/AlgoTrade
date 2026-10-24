@@ -108,3 +108,11 @@ This is an engineering acceptance checklist, not a claim that all items are alre
 ## What "just add API credentials" does and does not mean
 
 Credentials are only one prerequisite. The user must select a provider whose plan supports the required instrument/history, configure its symbol/segment mapping, and maintain provider-specific tokens (some expire regularly). F&O requires a dated contract catalog and the exact contract's own data. The application should minimize manual setup, validate remaining blockers, and explain them rather than claiming credentials alone guarantee coverage.
+
+## Implemented in this PR branch (not yet equivalent to production readiness)
+
+- Added a YAML-configured daily watchlist matrix for 12 example NSE/BSE index datasets and four configured strategies, plus CSV/Markdown output and per-dataset/per-strategy error rows.
+- Added a validation command that checks catalog references and reports missing/placeholder provider credentials without making network requests.
+- Updated the equity and experimental exact-contract F&O engines so close-derived signals are applied at the next bar's open; overnight gaps belong to the previously held position and open-to-close moves belong to the new position.
+- Added configurable equity slippage basis points, end-of-test liquidation costs, and regression tests for gap/entry timing and final exit costs.
+- Added setup documentation. Provider symbol coverage, current index support, dated F&O contract masters, statutory charges, and production-grade order/fill simulation still require verification and further implementation.
