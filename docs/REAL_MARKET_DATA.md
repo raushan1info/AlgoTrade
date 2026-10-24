@@ -29,6 +29,25 @@ python scripts/sync_groww_contracts.py --underlying BANKNIFTY --year 2025 --mont
 
 This writes a local CSV snapshot containing exchange, segment, underlying, expiry, contract symbol, and retrieval timestamp. It is a starting point for contract catalog ingestion, not a complete authoritative instrument master: it does not infer lot sizes, tick sizes, margin, settlement rules, or point-in-time validity.
 
+## Run an exact-contract F&O research backtest
+
+After configuring a Groww token and verifying the contract's expiry, lot size, and tick size from a trusted source, you can run a long/flat strategy on one historical contract:
+
+```bash
+python scripts/run_derivative_backtest.py \\
+  --provider groww_fno \\
+  --symbol NSE-NIFTY-30Sep25-24650-CE \\
+  --underlying NIFTY --kind option \\
+  --expiry 2025-09-30 --strike 24650 --option-type CE \\
+  --lot-size YOUR_VERIFIED_LOT_SIZE --tick-size 0.05 \\
+  --start 2025-09-01 --end 2025-09-30 --strategy rsi_14 \\
+  --initial-capital 100000 --transaction-cost-bps 5 --slippage-bps 5
+```
+
+Replace the illustrative contract and metadata with values valid for the selected date; do not copy the example lot size or symbol blindly. The script writes a candle-level CSV and a JSON metrics summary. For futures, add `--futures-margin-rate` using a documented estimate for the selected contract/date. This margin fraction is only an approximation and does not replace exchange/broker SPAN, exposure, or intraday margin calculations.
+
+The engine is intentionally limited to one exact contract and long/flat signals. It does not yet implement automatic expiry settlement, short options, synchronized underlying/option-chain features, realistic dynamic margin, or full Indian statutory costs. Do not use its results for live trading decisions.
+
 ## Limits and correctness notes
 
 - The current experiment runner/backtester accepts **daily OHLCV only**. Intraday intervals must not be fed into the current daily annualized metrics/backtester.
