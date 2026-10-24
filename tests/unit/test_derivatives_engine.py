@@ -100,7 +100,7 @@ def test_futures_margin_must_be_explicitly_configured():
             sample_data(),
             FixedSignalStrategy([1, 1, 1, 0]),
             future,
-            DerivativesBacktestConfig(initial_capital=1000, futures_margin_rate=0.2),
+            DerivativesBacktestConfig(initial_capital=100, futures_margin_rate=0.2),
         )
 
 
