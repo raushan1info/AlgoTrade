@@ -1,5 +1,6 @@
 """Build a daily, config-driven underlying-index research watchlist (no order execution)."""
 import argparse
+import re
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -38,6 +39,14 @@ def _load_watchlist(config_dir: Path) -> dict[str, Any]:
         raise ValueError("watchlist.period.start must be earlier than today")
     if period.get("end", "previous_day") not in {"previous_day", "latest"}:
         date.fromisoformat(str(period["end"]))
+    discovery = watchlist.get("discovery", {})
+    if discovery and not isinstance(discovery, dict):
+        raise ValueError("watchlist.discovery must be a mapping")
+    if discovery.get("enabled", False):
+        if not discovery.get("provider"):
+            raise ValueError("watchlist.discovery.provider is required when discovery is enabled")
+        if not discovery.get("exchanges") or not discovery.get("prefixes"):
+            raise ValueError("watchlist.discovery requires non-empty exchanges and prefixes")
     return watchlist
 
 
@@ -173,6 +182,62 @@ def _write_reports(rows: list[dict[str, Any]], output_dir: Path,
     return csv_path, report_path
 
 
+
+def _resolve_dataset_items(
+    catalog: dict[str, Any],
+    watchlist: dict[str, Any],
+    provider_cache: dict[str, Any],
+) -> list[tuple[str, dict[str, Any]]]:
+    """Resolve either configured datasets or dynamically discovered Kite index instruments."""
+    discovery = watchlist.get("discovery", {})
+    if not discovery.get("enabled", False):
+        return [
+            (dataset_id, catalog["datasets"][dataset_id])
+            for dataset_id in watchlist["datasets"]
+        ]
+
+    provider_id = str(discovery["provider"])
+    if provider_id not in catalog["providers"]:
+        raise ValueError(f"Index discovery references unknown provider '{provider_id}'")
+    provider_config = catalog["providers"][provider_id]
+    missing_env = _required_environment(provider_config)
+    if missing_env:
+        raise RuntimeError(
+            "Missing/placeholder credentials for index discovery: " + ", ".join(missing_env)
+            + ". Set them in the repository-root .env file."
+        )
+    if provider_id not in provider_cache:
+        provider_cache[provider_id] = create_provider(provider_id, provider_config)
+    provider = provider_cache[provider_id]
+    discover = getattr(provider, "list_index_instruments", None)
+    if not callable(discover):
+        raise RuntimeError(
+            f"Provider '{provider_id}' does not support automatic index discovery. "
+            "Disable discovery and configure watchlist.datasets explicitly."
+        )
+    found = discover(
+        tuple(str(value).upper() for value in discovery["exchanges"]),
+        tuple(str(value).upper() for value in discovery["prefixes"]),
+    )
+    items: list[tuple[str, dict[str, Any]]] = []
+    for instrument in found.to_dict(orient="records"):
+        exchange = str(instrument["exchange"]).upper()
+        trading_symbol = str(instrument["tradingsymbol"])
+        token = str(int(instrument["instrument_token"]))
+        dataset_id = re.sub(r"[^a-z0-9]+", "_", f"{exchange}_{trading_symbol}".lower()).strip("_")
+        items.append((dataset_id, {
+            "provider": provider_id,
+            "symbol": token,
+            "display_symbol": f"{exchange}:{trading_symbol}",
+            "exchange": exchange,
+            "instrument_name": str(instrument.get("name", trading_symbol)),
+            "data_kind": "index",
+            "interval": "1d",
+        }))
+    if not items:
+        raise ValueError("Index discovery returned no NIFTY/SENSEX instruments")
+    return items
+
 def run_watchlist(config_dir: Path, start_override: str | None = None,
                   end_override: str | None = None) -> tuple[Path, Path]:
     load_environment()
@@ -192,13 +257,34 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
     rows: list[dict[str, Any]] = []
     data_cache: dict[str, pd.DataFrame] = {}
     provider_cache: dict[str, Any] = {}
-    for dataset_id in watchlist["datasets"]:
-        dataset = catalog["datasets"][dataset_id]
+    try:
+        dataset_items = _resolve_dataset_items(catalog, watchlist, provider_cache)
+    except Exception as exc:
+        discovery = watchlist.get("discovery", {})
+        provider_id = str(discovery.get("provider", "unknown"))
+        for strategy_id in watchlist["strategies"]:
+            rows.append({
+                "dataset_id": "index_discovery",
+                "symbol": "NIFTY*/SENSEX*",
+                "provider_id": provider_id,
+                "strategy_id": strategy_id,
+                "start_date": start,
+                "end_date": end,
+                "run_status": "ERROR",
+                "signal_state": "UNKNOWN",
+                "signal_event": "UNKNOWN",
+                "error": f"{type(exc).__name__}: {exc}",
+            })
+        dataset_items = []
+    for dataset_id, dataset in dataset_items:
         provider_id = dataset["provider"]
         provider_config = catalog["providers"][provider_id]
         base: dict[str, Any] = {
             "dataset_id": dataset_id,
-            "symbol": dataset["symbol"],
+            "symbol": dataset.get("display_symbol", dataset["symbol"]),
+            "provider_symbol": dataset["symbol"],
+            "exchange": dataset.get("exchange", ""),
+            "instrument_name": dataset.get("instrument_name", ""),
             "data_kind": dataset.get("data_kind", "ohlcv"),
             "provider_id": provider_id,
             "start_date": start,
@@ -321,15 +407,31 @@ def main() -> None:
         raise ValueError(
             f"Unknown references: datasets={unknown_datasets}, strategies={unknown_strategies}"
         )
+    discovery = watchlist.get("discovery", {})
+    discovery_enabled = bool(discovery.get("enabled", False))
     print(f"Watchlist config valid. Period: {start} through {end}")
-    print(f"Datasets: {len(watchlist['datasets'])}; strategies: {len(watchlist['strategies'])}")
+    if discovery_enabled:
+        print(
+            f"Index discovery enabled: provider={discovery['provider']}, "
+            f"exchanges={discovery['exchanges']}, prefixes={discovery['prefixes']}"
+        )
+    else:
+        print(f"Configured datasets: {len(watchlist['datasets'])}")
+    print(f"Strategies: {len(watchlist['strategies'])}")
     if args.command == "validate":
-        for dataset_id in watchlist["datasets"]:
-            dataset = catalog["datasets"][dataset_id]
-            provider = catalog["providers"][dataset["provider"]]
+        if discovery_enabled:
+            provider_id = discovery["provider"]
+            provider = catalog["providers"][provider_id]
             missing = _required_environment(provider)
             state = "MISSING CREDENTIALS: " + ", ".join(missing) if missing else "credentials present"
-            print(f"- {dataset_id} ({dataset['provider']} / {dataset['symbol']}): {state}")
+            print(f"- discovery provider {provider_id}: {state}")
+        else:
+            for dataset_id in watchlist["datasets"]:
+                dataset = catalog["datasets"][dataset_id]
+                provider = catalog["providers"][dataset["provider"]]
+                missing = _required_environment(provider)
+                state = "MISSING CREDENTIALS: " + ", ".join(missing) if missing else "credentials present"
+                print(f"- {dataset_id} ({dataset['provider']} / {dataset['symbol']}): {state}")
         print("Validation does not make network requests; run the command to test actual provider access.")
         return
     csv_path, report_path = run_watchlist(config_dir, args.start, args.end)
