@@ -23,5 +23,6 @@ Read [docs/REAL_MARKET_DATA.md](docs/REAL_MARKET_DATA.md) for Zerodha Kite Conne
 - Synthetic, Yahoo Finance, CSV, generic REST JSON, Zerodha Kite Connect, and Groww historical-data providers.
 - Buy-and-hold benchmark, transaction-cost-aware equity backtests, metrics, and local reports.
 - Groww historical F&O expiry/contract symbol retrieval and CSV snapshots.
+- Separate experimental lot-based backtest for one exact option/futures contract, with explicit transaction costs, slippage, and capital/margin assumptions.
 
-Not yet a production trading system: intraday backtesting, live streaming, order execution, point-in-time F&O master normalization, lot-based derivatives P&L, margin, expiry/settlement, complete Indian transaction charges, and broker order safety controls remain future work.
+Not yet a production trading system: intraday equity backtesting, live streaming, order execution, authoritative point-in-time F&O master/lot-size ingestion, short-option strategies, realistic dynamic futures margin, expiry/settlement, complete date-versioned Indian transaction charges, and broker order safety controls remain future work. The new F&O backtester is research-only, supports long/flat signals for one exact contract, and requires verified lot/tick sizes and explicit assumptions.
