@@ -11,7 +11,8 @@ AlgoTrade is a local-first modular monolith with explicit boundaries and no serv
 - `backtesting`: long-only equity simulation and experiment orchestration.
 - `analytics`: return and risk metrics.
 - `reporting`: CSV and Markdown output.
-- `scripts`: command-line entry points.
+- `scripts`: command-line entry points, including the multi-instrument daily watchlist runner.
+- `config/research_universe.yaml`: selected datasets and strategies for the daily watchlist.
 - `tests`: unit and integration checks.
 
 ## Configuration
@@ -20,7 +21,9 @@ The `config/` directory is declarative YAML only. Python configuration code is i
 
 ## Equity data flow
 
-Provider -> OHLCV validation -> Strategy signals -> Backtest engine -> Metrics and buy/hold comparison -> CSV/Markdown report
+Provider -> OHLCV validation -> Strategy signals at close -> next-open bar-based fill model (overnight gap + intraday return) -> costs/slippage -> Metrics and buy/hold comparison -> CSV/Markdown report
+
+The watchlist runner evaluates the configured dataset/strategy matrix and isolates provider/symbol errors into report rows. The current execution model remains an approximation and does not model bid/ask quotes, liquidity, partial fills or intraday order-book behavior.
 
 ## Derivatives boundary
 
