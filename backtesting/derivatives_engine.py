@@ -45,8 +45,9 @@ def run_derivative_backtest(
 ) -> tuple[pd.DataFrame, dict[str, float | str]]:
     """Backtest one exact derivative contract using whole lots and long/flat signals.
 
-    A close-derived signal is applied on the next bar. Options are charged their premium
-    notional for capital requirement; futures use the explicitly supplied margin rate.
+    A close-derived signal is filled at the next bar's open. The previous position earns
+    the overnight gap and the new position earns the open-to-close move. Options are
+    charged their premium notional for capital requirement; futures use the supplied margin rate.
     """
     config = config or DerivativesBacktestConfig()
     data = validate_ohlcv(market_data)
@@ -68,30 +69,34 @@ def run_derivative_backtest(
     result = data.copy()
     result["signal"] = signal.astype(float)
     result["position_lots"] = (result["signal"].shift(1).fillna(0) > 0).astype(int) * config.lots
-    result["close_change"] = result["Close"].diff().fillna(0.0)
-    # Signal from the previous close determines exposure for this close-to-close bar.
-    result["gross_pnl"] = result["position_lots"] * contract.lot_size * result["close_change"]
+    result["previous_position_lots"] = result["position_lots"].shift(1).fillna(0)
+    overnight_change = (result["Open"] - result["Close"].shift(1)).fillna(0.0)
+    intraday_change = result["Close"] - result["Open"]
+    # The old position owns the overnight gap; the newly filled position owns the intraday move.
+    result["gross_pnl"] = (
+        result["previous_position_lots"] * contract.lot_size * overnight_change
+        + result["position_lots"] * contract.lot_size * intraday_change
+    )
     result["position_change_lots"] = result["position_lots"].diff().fillna(
         result["position_lots"]
     ).abs()
     result["turnover_notional"] = (
-        result["position_change_lots"] * contract.lot_size * result["Close"]
+        result["position_change_lots"] * contract.lot_size * result["Open"]
     )
     result["transaction_cost"] = (
         result["turnover_notional"] * config.transaction_cost_bps / 10_000.0
     )
     result["slippage_cost"] = result["turnover_notional"] * config.slippage_bps / 10_000.0
     if config.force_close_at_end and not result.empty:
-        result.iloc[-1, result.columns.get_loc("turnover_notional")] += (
+        final_exit_notional = (
             result["position_lots"].iloc[-1] * contract.lot_size * result["Close"].iloc[-1]
         )
+        result.iloc[-1, result.columns.get_loc("turnover_notional")] += final_exit_notional
         result.iloc[-1, result.columns.get_loc("transaction_cost")] += (
-            result["position_lots"].iloc[-1] * contract.lot_size * result["Close"].iloc[-1]
-            * config.transaction_cost_bps / 10_000.0
+            final_exit_notional * config.transaction_cost_bps / 10_000.0
         )
         result.iloc[-1, result.columns.get_loc("slippage_cost")] += (
-            result["position_lots"].iloc[-1] * contract.lot_size * result["Close"].iloc[-1]
-            * config.slippage_bps / 10_000.0
+            final_exit_notional * config.slippage_bps / 10_000.0
         )
     result["net_pnl"] = (
         result["gross_pnl"] - result["transaction_cost"] - result["slippage_cost"]
@@ -124,6 +129,10 @@ def run_derivative_backtest(
     sharpe = float(returns.mean() / volatility * np.sqrt(252)) if volatility > 0 else 0.0
     drawdown = result["equity"] / result["equity"].cummax() - 1.0
     position_change = result["position_lots"].diff().fillna(result["position_lots"])
+    if config.force_close_at_end and not result.empty and result["position_lots"].iloc[-1] > 0:
+        metrics_exit_count = float((position_change < 0).sum() + 1)
+    else:
+        metrics_exit_count = float((position_change < 0).sum())
     metrics: dict[str, float | str] = {
         "instrument_id": contract.instrument_id,
         "contract_kind": contract.kind,
@@ -137,7 +146,7 @@ def run_derivative_backtest(
         "sharpe_ratio": sharpe,
         "max_drawdown": float(drawdown.min()),
         "entry_count": float((position_change > 0).sum()),
-        "exit_count": float((position_change < 0).sum()),
+        "exit_count": metrics_exit_count,
         "transaction_cost_total": float(result["transaction_cost"].sum()),
         "slippage_cost_total": float(result["slippage_cost"].sum()),
         "max_capital_utilization": float(result["capital_utilization"].max()),
