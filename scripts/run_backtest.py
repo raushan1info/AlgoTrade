@@ -1,7 +1,7 @@
 """Run an offline demo backtest, or use Yahoo Finance with --provider yfinance."""
 import argparse
 
-from config.environment import load_environment
+from core.configuration.environment import load_environment
 from backtesting.engine import run_momentum_backtest
 from core.base.models import BacktestConfig
 from data.providers.synthetic import SyntheticMarketDataProvider
