@@ -1,6 +1,6 @@
 import pytest
 
-from config.loader import load_catalog, resolve_experiment, validate_catalog
+from core.configuration.loader import load_catalog, resolve_experiment, validate_catalog, validate_experiment_readiness
 
 
 def test_catalog_rejects_unknown_dataset_provider():
