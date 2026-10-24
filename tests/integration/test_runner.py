@@ -1,7 +1,7 @@
 import pandas as pd
 
 from backtesting.runner import run_experiment
-from config.loader import load_catalog, resolve_experiment
+from core.configuration.loader import load_catalog, resolve_experiment
 from strategies.registry import create_strategy
 
 
