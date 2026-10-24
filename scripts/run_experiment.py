@@ -1,10 +1,13 @@
 """CLI for validating and running named experiment configurations."""
 import argparse
+
+from config.environment import load_environment
 from config.loader import load_catalog, resolve_experiment
 from backtesting.runner import run_experiment
 
 
 def main() -> None:
+    load_environment()
     parser = argparse.ArgumentParser(description="Run configuration-driven AlgoTrade experiments.")
     parser.add_argument("--config-dir", default="config", help="Directory containing YAML catalogs")
     commands = parser.add_subparsers(dest="command", required=True)

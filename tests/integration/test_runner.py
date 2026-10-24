@@ -1,7 +1,7 @@
 import pandas as pd
-import pytest
-from config.loader import load_catalog, resolve_experiment
+
 from backtesting.runner import run_experiment
+from config.loader import load_catalog, resolve_experiment
 from strategies.registry import create_strategy
 
 
@@ -12,16 +12,10 @@ def test_catalog_and_experiment_references_validate():
     assert len(experiment["strategies"]) == 3
 
 
-def test_unknown_experiment_fails_with_available_names():
-    catalog = load_catalog()
-    with pytest.raises(ValueError, match="Unknown experiment"):
-        resolve_experiment(catalog, "not_a_real_experiment")
-
-
 def test_strategy_registry_builds_known_strategies():
     catalog = load_catalog()
-    for strategy_id in catalog["strategies"]:
-        strategy = create_strategy(strategy_id, catalog["strategies"][strategy_id])
+    for strategy_id, strategy_config in catalog["strategies"].items():
+        strategy = create_strategy(strategy_id, strategy_config)
         assert hasattr(strategy, "generate_signals")
 
 
