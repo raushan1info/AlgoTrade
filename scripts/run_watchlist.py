@@ -216,9 +216,9 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                     provider_cache[provider_id] = create_provider(provider_id, provider_config)
                 market_data = provider_cache[provider_id].get_history(dataset["symbol"], start, end)
                 market_data = validate_ohlcv(market_data)
-                start_date, end_date = date.fromisoformat(start), date.fromisoformat(end)
+                start_date, requested_end_date = date.fromisoformat(start), date.fromisoformat(end)
                 in_range = [
-                    start_date <= pd.Timestamp(timestamp).date() <= end_date
+                    start_date <= pd.Timestamp(timestamp).date() <= requested_end_date
                     for timestamp in market_data.index
                 ]
                 market_data = market_data.loc[in_range]
@@ -226,33 +226,44 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                     raise ValueError("No valid candles remain after applying the requested date range")
                 data_cache[dataset_id] = market_data
             data = data_cache[dataset_id]
-            last_bar_date = pd.Timestamp(data.index[-1]).date()
-            age_days = (end_date - last_bar_date).days
-            data_status = "STALE_DATA" if age_days > max_age else "OK"
+        except Exception as exc:
             for strategy_id in watchlist["strategies"]:
+                rows.append({
+                    **base,
+                    "strategy_id": strategy_id,
+                    "run_status": "ERROR",
+                    "last_bar_date": "",
+                    "data_age_calendar_days": None,
+                    "rows": 0,
+                    "signal_state": "UNKNOWN",
+                    "signal_event": "UNKNOWN",
+                    "error": f"{type(exc).__name__}: {exc}",
+                })
+            continue
+
+        last_bar_date = pd.Timestamp(data.index[-1]).date()
+        age_days = (end_date - last_bar_date).days
+        data_status = "STALE_DATA" if age_days > max_age else "OK"
+        for strategy_id in watchlist["strategies"]:
+            try:
                 strategy = create_strategy(strategy_id, catalog["strategies"][strategy_id])
                 signal_frame = strategy.generate_signals(data)
                 signal_info = _signal_summary(signal_frame)
+                settings = catalog["defaults"].get("backtest", {})
                 _, metrics = run_strategy_backtest(
-                    data, strategy,
+                    data,
+                    strategy,
                     BacktestConfig(
-                        initial_capital=float(catalog["defaults"].get("backtest", {}).get(
-                            "initial_capital", 100_000
-                        )),
-                        transaction_cost_bps=float(catalog["defaults"].get("backtest", {}).get(
-                            "transaction_cost_bps", 10
-                        )),
-                        risk_free_rate=float(catalog["defaults"].get("backtest", {}).get(
-                            "risk_free_rate", 0
-                        )),
-                        slippage_bps=float(catalog["defaults"].get("backtest", {}).get(
-                            "slippage_bps", 0
-                        )),
+                        initial_capital=float(settings.get("initial_capital", 100_000)),
+                        transaction_cost_bps=float(settings.get("transaction_cost_bps", 10)),
+                        risk_free_rate=float(settings.get("risk_free_rate", 0)),
+                        slippage_bps=float(settings.get("slippage_bps", 0)),
                     ),
                 )
                 rows.append({
                     **base,
                     **signal_info,
+                    "strategy_id": strategy_id,
                     "run_status": data_status,
                     "last_bar_date": last_bar_date.isoformat(),
                     "data_age_calendar_days": age_days,
@@ -264,23 +275,18 @@ def run_watchlist(config_dir: Path, start_override: str | None = None,
                     "annualized_volatility": metrics.get("annualized_volatility"),
                     "entry_count": metrics.get("entry_count"),
                     "exit_count": metrics.get("exit_count"),
-                    "transaction_cost_bps": float(catalog["defaults"].get("backtest", {}).get(
-                        "transaction_cost_bps", 10
-                    )),
-                    "slippage_bps": float(catalog["defaults"].get("backtest", {}).get(
-                        "slippage_bps", 0
-                    )),
+                    "transaction_cost_bps": float(settings.get("transaction_cost_bps", 10)),
+                    "slippage_bps": float(settings.get("slippage_bps", 0)),
                     "error": "",
                 })
-        except Exception as exc:  # keep other instruments reportable when one provider/symbol fails
-            for strategy_id in watchlist["strategies"]:
+            except Exception as exc:
                 rows.append({
                     **base,
                     "strategy_id": strategy_id,
                     "run_status": "ERROR",
-                    "last_bar_date": "",
-                    "data_age_calendar_days": None,
-                    "rows": 0,
+                    "last_bar_date": last_bar_date.isoformat(),
+                    "data_age_calendar_days": age_days,
+                    "rows": int(len(data)),
                     "signal_state": "UNKNOWN",
                     "signal_event": "UNKNOWN",
                     "error": f"{type(exc).__name__}: {exc}",
