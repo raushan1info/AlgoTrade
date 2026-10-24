@@ -44,17 +44,9 @@ class KiteConnectMarketDataProvider(MarketDataProvider):
             self._kite = kite
         return self._kite
 
-    def _resolve_token(self, symbol: str) -> int:
-        if str(symbol).strip().isdigit():
-            return int(symbol)
-        if ":" not in symbol:
-            raise ValueError(
-                "Kite symbols must be an instrument token or EXCHANGE:TRADING_SYMBOL "
-                "(for example NSE:RELIANCE)."
-            )
-        exchange, trading_symbol = (part.strip().upper() for part in symbol.split(":", 1))
-        if not exchange or not trading_symbol:
-            raise ValueError("Kite symbol must be EXCHANGE:TRADING_SYMBOL.")
+    def _instrument_master(self, exchange: str) -> pd.DataFrame:
+        """Return today's cached instrument master for an exchange."""
+        exchange = exchange.strip().upper()
         cache_dir = self.instrument_cache_dir
         if not cache_dir.is_absolute():
             cache_dir = Path(__file__).resolve().parents[2] / cache_dir
@@ -69,6 +61,70 @@ class KiteConnectMarketDataProvider(MarketDataProvider):
             temporary = cache_file.with_suffix(".tmp")
             instruments.to_csv(temporary, index=False)
             temporary.replace(cache_file)
+        if instruments.empty:
+            raise ValueError(f"Kite instrument master is empty for {exchange}.")
+        return instruments
+
+    def list_index_instruments(
+        self,
+        exchanges: tuple[str, ...] = ("NSE", "BSE"),
+        prefixes: tuple[str, ...] = ("NIFTY", "SENSEX"),
+    ) -> pd.DataFrame:
+        """Discover available NIFTY/SENSEX index rows from the provider instrument masters.
+
+        This discovers index instruments, not F&O contracts. Actual historical candle
+        availability is tested separately when each index is requested.
+        """
+        prefix_values = tuple(prefix.upper() for prefix in prefixes)
+        discovered: list[pd.DataFrame] = []
+        for exchange in exchanges:
+            instruments = self._instrument_master(exchange)
+            if "tradingsymbol" not in instruments.columns:
+                raise ValueError(f"Kite instrument master for {exchange} has no tradingsymbol column")
+            symbol = instruments["tradingsymbol"].astype(str).str.upper()
+            name = instruments.get(
+                "name", pd.Series("", index=instruments.index)
+            ).astype(str).str.upper()
+            prefix_mask = symbol.map(
+                lambda value: any(value.startswith(prefix) for prefix in prefix_values)
+            ) | name.map(lambda value: any(value.startswith(prefix) for prefix in prefix_values))
+            segment = instruments.get(
+                "segment", pd.Series("", index=instruments.index)
+            ).astype(str).str.upper()
+            instrument_type = instruments.get(
+                "instrument_type", pd.Series("", index=instruments.index)
+            ).astype(str).str.upper()
+            index_mask = segment.isin({"INDICES", "INDEX"}) | instrument_type.eq("INDEX")
+            selected = instruments.loc[index_mask & prefix_mask].copy()
+            if selected.empty:
+                continue
+            selected["exchange"] = exchange
+            selected["tradingsymbol"] = selected["tradingsymbol"].astype(str)
+            selected["instrument_token"] = pd.to_numeric(
+                selected["instrument_token"], errors="raise"
+            ).astype("int64")
+            discovered.append(selected)
+        if not discovered:
+            raise ValueError(
+                "No NIFTY/SENSEX index instruments were found in the selected Kite instrument "
+                "masters. Check provider access and the instrument-master schema."
+            )
+        result = pd.concat(discovered, ignore_index=True)
+        result = result.drop_duplicates(subset=["exchange", "instrument_token"])
+        return result.sort_values(["exchange", "tradingsymbol"]).reset_index(drop=True)
+
+    def _resolve_token(self, symbol: str) -> int:
+        if str(symbol).strip().isdigit():
+            return int(symbol)
+        if ":" not in symbol:
+            raise ValueError(
+                "Kite symbols must be an instrument token or EXCHANGE:TRADING_SYMBOL "
+                "(for example NSE:RELIANCE)."
+            )
+        exchange, trading_symbol = (part.strip().upper() for part in symbol.split(":", 1))
+        if not exchange or not trading_symbol:
+            raise ValueError("Kite symbol must be EXCHANGE:TRADING_SYMBOL.")
+        instruments = self._instrument_master(exchange)
         matches = instruments.loc[
             instruments["tradingsymbol"].astype(str).str.upper().eq(trading_symbol)
         ]
