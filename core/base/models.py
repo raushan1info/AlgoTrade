@@ -10,6 +10,7 @@ class BacktestConfig:
     initial_capital: float = 100_000.0
     transaction_cost_bps: float = 10.0
     risk_free_rate: float = 0.0
+    slippage_bps: float = 0.0
 
     def __post_init__(self) -> None:
         if not np.isfinite(self.initial_capital) or self.initial_capital <= 0:
@@ -18,6 +19,8 @@ class BacktestConfig:
             raise ValueError("transaction_cost_bps must be finite and non-negative")
         if not np.isfinite(self.risk_free_rate) or self.risk_free_rate <= -1:
             raise ValueError("risk_free_rate must be finite and greater than -1")
+        if not np.isfinite(self.slippage_bps) or self.slippage_bps < 0:
+            raise ValueError("slippage_bps must be finite and non-negative")
 
 
 def validate_ohlcv(data: pd.DataFrame) -> pd.DataFrame:
