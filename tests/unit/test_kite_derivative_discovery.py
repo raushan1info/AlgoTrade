@@ -2,6 +2,7 @@ from datetime import date
 
 import pandas as pd
 
+from core.base.derivatives import DerivativeContract
 from data.providers.kite_provider import KiteConnectMarketDataProvider
 
 
@@ -53,10 +54,7 @@ def test_kite_derivative_discovery_filters_other_underlyings_and_expired_contrac
 
 def test_kite_contract_history_uses_contract_instrument_token():
     provider = KiteConnectMarketDataProvider({"instrument_cache_dir": "unused"})
-    contract = provider.list_derivative_contracts if False else None
     provider.get_history = lambda symbol, start, end: pd.DataFrame({"symbol": [symbol]})
-    from core.base.derivatives import DerivativeContract
-
     exact_contract = DerivativeContract(
         instrument_id="12345",
         underlying="NIFTY",
