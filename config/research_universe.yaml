@@ -1,0 +1,32 @@
+# Daily underlying-index research universe.
+# Dataset symbols are provider-specific examples; validate them against the chosen provider.
+watchlist:
+  description: Daily Nifty/Sensex index strategy watchlist
+  period:
+    start: "2018-01-01"
+    end: previous_day
+  max_data_age_calendar_days: 5
+  output_dir: reports/watchlist
+  discovery:
+    enabled: true
+    provider: zerodha_kite
+    exchanges: [NSE, BSE]
+    prefixes: [NIFTY, SENSEX]
+  strategies:
+    - ma_20_50
+    - ma_50_200
+    - rsi_14
+    - macd_standard
+  datasets:
+    - nifty50_kite
+    - banknifty_kite
+    - finnifty_kite
+    - niftynext50_kite
+    - niftymidcapselect_kite
+    - niftyit_kite
+    - niftypharma_kite
+    - niftyauto_kite
+    - niftyfmcg_kite
+    - niftypsubank_kite
+    - niftyprivatebank_kite
+    - sensex_kite

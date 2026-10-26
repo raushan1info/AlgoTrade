@@ -2,4 +2,5 @@ defaults:
   backtest:
     initial_capital: 100000
     transaction_cost_bps: 10
+    slippage_bps: 0
     risk_free_rate: 0

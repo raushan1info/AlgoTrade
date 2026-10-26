@@ -3,25 +3,122 @@ datasets:
     provider: synthetic_demo
     symbol: RELIANCE.NS
     interval: 1d
+    data_kind: synthetic
 
   tcs_demo:
     provider: synthetic_demo
     symbol: TCS.NS
     interval: 1d
+    data_kind: synthetic
 
   infy_demo:
     provider: synthetic_demo
     symbol: INFY.NS
     interval: 1d
+    data_kind: synthetic
 
-  # Example only: uses the generic REST JSON provider above.
+  # Real-data examples. Replace credentials in .env; providers are read-only.
+  reliance_zerodha:
+    provider: zerodha_kite
+    symbol: NSE:RELIANCE
+    interval: 1d
+    data_kind: ohlcv
+
+  reliance_groww:
+    provider: groww_api
+    symbol: NSE-RELIANCE
+    interval: 1d
+    data_kind: ohlcv
+
+  # Example historical contract; replace with a contract available to your Groww account.
+  nifty_option_example:
+    provider: groww_fno
+    symbol: NSE-NIFTY-04Jan24-19200-CE
+    interval: 1d
+    data_kind: option
+
   reliance_api_example:
     provider: market_data_api_example
     symbol: RELIANCE
     interval: 1d
+    data_kind: ohlcv
 
-  # Example local CSV dataset. Update the provider/path before use.
   reliance_csv_example:
     provider: local_csv_example
     symbol: RELIANCE.NS
     interval: 1d
+    data_kind: ohlcv
+
+  # Configurable index-history mappings for the daily research watchlist.
+  # Verify each symbol is available in the selected provider's instrument master.
+  nifty50_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY 50
+    interval: 1d
+    data_kind: index
+
+  banknifty_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY BANK
+    interval: 1d
+    data_kind: index
+
+  finnifty_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY FIN SERVICE
+    interval: 1d
+    data_kind: index
+
+  niftynext50_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY NEXT 50
+    interval: 1d
+    data_kind: index
+
+  niftymidcapselect_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY MID SELECT
+    interval: 1d
+    data_kind: index
+
+  niftyit_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY IT
+    interval: 1d
+    data_kind: index
+
+  niftypharma_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY PHARMA
+    interval: 1d
+    data_kind: index
+
+  niftyauto_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY AUTO
+    interval: 1d
+    data_kind: index
+
+  niftyfmcg_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY FMCG
+    interval: 1d
+    data_kind: index
+
+  niftypsubank_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY PSU BANK
+    interval: 1d
+    data_kind: index
+
+  niftyprivatebank_kite:
+    provider: zerodha_kite
+    symbol: NSE:NIFTY PVT BANK
+    interval: 1d
+    data_kind: index
+
+  sensex_kite:
+    provider: zerodha_kite
+    symbol: BSE:SENSEX
+    interval: 1d
+    data_kind: index

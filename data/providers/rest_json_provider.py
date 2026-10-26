@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 
 import pandas as pd
 
-from config.environment import load_environment
+from core.configuration.environment import load_environment
 from core.base.models import validate_ohlcv
 from core.market_data.base import MarketDataProvider
 

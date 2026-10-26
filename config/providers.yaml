@@ -5,8 +5,31 @@ providers:
   yahoo_finance:
     type: yfinance
 
-  # Example only: configure this to match your actual API's response schema.
-  # Credentials are read from the root .env / process environment, never stored here.
+  zerodha_kite:
+    type: kite_connect
+    api_key_env: KITE_API_KEY
+    access_token_env: KITE_ACCESS_TOKEN
+    kite_interval: day
+    instrument_cache_dir: data/cache/instruments
+
+  groww_api:
+    type: groww
+    token_env: GROWW_ACCESS_TOKEN
+    exchange: NSE
+    segment: CASH
+    candle_interval: 1day
+    timeout_seconds: 30
+    max_days_per_request: 175
+
+  groww_fno:
+    type: groww
+    token_env: GROWW_ACCESS_TOKEN
+    exchange: NSE
+    segment: FNO
+    candle_interval: 1day
+    timeout_seconds: 30
+    max_days_per_request: 175
+
   market_data_api_example:
     type: rest_json
     url: https://api.example.com/v1/ohlcv
@@ -27,11 +50,6 @@ providers:
       Close: close
       Volume: volume
 
-  # Example only. Configure a real local CSV path before selecting this provider.
   local_csv_example:
     type: csv
     path: data/raw/example.csv
-
-  # Reserved for a future broker-specific integration; not implemented yet.
-  broker_api_placeholder:
-    type: broker_api

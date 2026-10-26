@@ -1,0 +1,27 @@
+# Underlying universe only. Contract expiries, strikes, lot sizes, and tick sizes
+# must be resolved from a dated exchange/broker instrument master at runtime.
+instruments:
+  nifty50:
+    exchange: NSE
+    segment: index
+    symbol: NIFTY 50
+    kind: index
+    derivative_enabled: true
+  banknifty:
+    exchange: NSE
+    segment: index
+    symbol: NIFTY BANK
+    kind: index
+    derivative_enabled: true
+  finnifty:
+    exchange: NSE
+    segment: index
+    symbol: NIFTY FIN SERVICE
+    kind: index
+    derivative_enabled: true
+  sensex:
+    exchange: BSE
+    segment: index
+    symbol: SENSEX
+    kind: index
+    derivative_enabled: true

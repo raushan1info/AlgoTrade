@@ -1,6 +1,6 @@
 import pytest
 
-from config.loader import load_catalog, resolve_experiment, validate_catalog
+from core.configuration.loader import load_catalog, resolve_experiment, validate_catalog, validate_experiment_readiness
 
 
 def test_catalog_rejects_unknown_dataset_provider():
@@ -29,3 +29,14 @@ def test_unknown_experiment_fails_with_available_names():
     catalog = load_catalog()
     with pytest.raises(ValueError, match="Unknown experiment"):
         resolve_experiment(catalog, "not_a_real_experiment")
+
+
+def test_catalog_loads_fno_underlyings():
+    catalog = load_catalog()
+    assert {"nifty50", "banknifty", "finnifty", "sensex"}.issubset(catalog["instruments"])
+
+
+def test_readiness_warns_for_synthetic_dataset():
+    catalog = load_catalog()
+    warnings = validate_experiment_readiness(catalog, "compare_strategies")
+    assert any("synthetic data" in warning for warning in warnings)
